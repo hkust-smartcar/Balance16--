@@ -1,0 +1,7 @@
+Listings/
+Objects/
+*.uvguix*
+*.uvoptx
+*.uvprojx
+User/Objects/
+Startup/Objects/
