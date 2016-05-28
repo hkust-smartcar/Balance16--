@@ -4,6 +4,7 @@
 	#define ISEXTERNAL
 #endif // IS_MAIN
 
+#include <math.h>
 #include "common.h"
 #include "gpio.h"
 #include "systick.h"
@@ -34,10 +35,15 @@
 void INIT(void);
 void PIT0_ISR(void);
 void UART_RX_ISR(uint16_t);
+
 int16_t getEncoder(uint32_t);
 void setMotor(uint32_t, int32_t);
+
+void updateAngle(void);
+
 void printEncoder(uint32_t);
 void printMPU(uint32_t);
+
 
 ISEXTERNAL int32_t speed;
 ISEXTERNAL int16_t enc_data_l, enc_data_r;

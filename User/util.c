@@ -28,7 +28,7 @@ void INIT(void) {
 	PORT_PinMuxConfig(HW_GPIOD, 7, kPinAlt3);
 	
 	UART_CallbackRxInstall(HW_UART0, UART_RX_ISR);
-	UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, true);
+	UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, false);
 	
 	printFlag = 0;
 	
