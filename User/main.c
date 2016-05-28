@@ -23,10 +23,19 @@ void PIT0_ISR(void) {
 
 	switch (TIM_CNT) {
 		case 0:
-		enc_data_l = getEncoder(ENC_L);
-		enc_data_r = getEncoder(ENC_R);
-		UART_WriteByte(HW_UART0, ((enc_data_l >> 8) & 0xFF));
-		UART_WriteByte(HW_UART0, (enc_data_l & 0xFF));
+		// enc_data_l = getEncoder(ENC_L);
+		// enc_data_r = getEncoder(ENC_R);
+		mpu6050_read_accel(accel);
+		mpu6050_read_gyro(gyro);
+		if (printFlag) {
+			printMPU(AX);
+			printMPU(AY);
+			printMPU(AZ);
+			printMPU(GX);
+			printMPU(GY);
+			printMPU(GZ);
+			UART_WriteByte(HW_UART0, '\r');
+		}
 		break; // case 0
 
 		case 1:
@@ -55,20 +64,24 @@ void UART_RX_ISR(uint16_t ch) {
 		case 0x1E: // up
 		if (speed < 9000) speed += 1000;
 		setMotor(MOTOR_L, speed);
-		break;
+		break; //0x1E
 
-		case 0x1F: //down
+		case 0x1F: // down
 		if (speed > -9000) speed -= 1000;
 		setMotor(MOTOR_L, speed);
-		break;
+		break; //0x1F
 
 		case 0x1C: // left
 
-		break;
+		break; //0x1C
 
-		case 0x1D: //right
+		case 0x1D: // right
 
-		break;
+		break; //0x1D
+		
+		case 'S': //send data
+		printFlag = 1 - printFlag;
+		break; //'S'
 
 		default:
 		UART_WriteByte(HW_UART0, ch);
