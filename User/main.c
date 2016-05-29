@@ -10,7 +10,7 @@
 // #define TG 0.25f
 #define DEADZONE_L 600.0f
 #define DEADZONE_R 450.0f
-#define LEFT_MOTOR_SCALE 0.93f
+#define LEFT_MOTOR_SCALE 0.98f
 
 enum {
 	STABLE_ANGLE,
@@ -127,11 +127,17 @@ void PIT0_ISR(void) {
 void UART_RX_ISR(uint16_t ch) {
 	switch (ch) {
 		case 0x1E: // up
-
+		if (speedSP < 10000) {
+			speedSP += 100;
+			printf("set speed %d\r", speedSP);
+		}
 		break; //0x1E
 
 		case 0x1F: // down
-		
+		if (speedSP > -10000) {
+			speedSP -= 100;
+			printf("set speed %d\r", speedSP);
+		}
 		break; //0x1F
 
 		case 0x1C: // left
@@ -149,7 +155,7 @@ void UART_RX_ISR(uint16_t ch) {
 		case '&': // motor enable
 		motorEnable = 1;
 		angleError = 0.0f;
-		
+		speedSP = 0;
 		speedError = speedErrorIntegral = 0;
 		speedControlAmountOld = speedControlAmount = 0.0f;
 		speedControlOut = 0.0f;
