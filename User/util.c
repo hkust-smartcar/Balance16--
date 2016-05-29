@@ -14,7 +14,7 @@ void INIT(void) {
 	PIT_Init(&PIT_InitStruct);
 	
 	PIT_CallbackInstall(HW_PIT_CH0, PIT0_ISR);
-	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
+	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, false);
 	
 	//UART
 	UART_InitTypeDef UART_InitStruct;
@@ -28,7 +28,7 @@ void INIT(void) {
 	PORT_PinMuxConfig(HW_GPIOD, 7, kPinAlt3);
 	
 	UART_CallbackRxInstall(HW_UART0, UART_RX_ISR);
-	UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, false);
+	UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, true);
 	
 	printFlag = 0;
 	
@@ -37,11 +37,13 @@ void INIT(void) {
 	FTM_PWM_QuickInit(FTM3_CH1_PD01, kPWM_EdgeAligned, 10000);
 	FTM_PWM_QuickInit(FTM3_CH2_PD02, kPWM_EdgeAligned, 10000);
 	FTM_PWM_QuickInit(FTM3_CH3_PD03, kPWM_EdgeAligned, 10000);
-	speed = 0;
-	FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH0, speed);
-	FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, speed);
-	FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, speed);
-	FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH3, speed);
+	
+	FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH0, 0);
+	FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, 0);
+	FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, 0);
+	FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH3, 0);
+
+	motorEnable = 0;
 	
 	//FTM (Decoder)
 	FTM_QD_QuickInit(FTM1_QD_PHA_PA12_PHB_PA13,
@@ -84,6 +86,17 @@ int16_t getEncoder(uint32_t instance) {
 }
 
 void setMotor(uint32_t id, int32_t pwmDuty) {
+	if (!motorEnable) {
+		FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH0, 0);
+		FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, 0);
+		FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, 0);
+		FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH3, 0);
+		return;
+	}
+
+	if (pwmDuty > 9000) pwmDuty = 9000;
+	if (pwmDuty < -9000) pwmDuty = -9000;
+
 	switch (id) {
 		case MOTOR_L:
 		if (pwmDuty > 0) {
@@ -115,13 +128,15 @@ void setMotor(uint32_t id, int32_t pwmDuty) {
 void printEncoder(uint32_t id) {
 	switch (id) {
 		case ENC_L:
-		UART_WriteByte(HW_UART0, ((enc_data_l >> 8) & 0xFF));
-		UART_WriteByte(HW_UART0, (enc_data_l & 0xFF));
+		// UART_WriteByte(HW_UART0, ((enc_data_l >> 8) & 0xFF));
+		// UART_WriteByte(HW_UART0, (enc_data_l & 0xFF));
+		printf("%d\r", enc_data_l);
 		break; // ENC_L
 
 		case ENC_R:
-		UART_WriteByte(HW_UART0, ((enc_data_r >> 8) & 0xFF));
-		UART_WriteByte(HW_UART0, (enc_data_r & 0xFF));
+		// UART_WriteByte(HW_UART0, ((enc_data_r >> 8) & 0xFF));
+		// UART_WriteByte(HW_UART0, (enc_data_r & 0xFF));
+		printf("%d\r", enc_data_r);
 		break; // ENC_R
 
 		default:

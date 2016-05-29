@@ -40,12 +40,16 @@ int16_t getEncoder(uint32_t);
 void setMotor(uint32_t, int32_t);
 
 void updateAngle(void);
+void angleControl(void);
+void speedControl(void);
+int32_t speedOut(uint32_t, float);
 
 void printEncoder(uint32_t);
 void printMPU(uint32_t);
 
 
-ISEXTERNAL int32_t speed;
+ISEXTERNAL int16_t speed_l, speed_r;
 ISEXTERNAL int16_t enc_data_l, enc_data_r;
 ISEXTERNAL int8_t printFlag;
 ISEXTERNAL int16_t accel[3], gyro[3];
+ISEXTERNAL int8_t motorEnable; // 1: Enable
