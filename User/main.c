@@ -59,10 +59,10 @@ int main(void) {
 
 	CTRL_CNST[STABLE_ANGLE] = -63.5f;
 	CTRL_CNST[TG] = 2.0f;
-	CTRL_CNST[ANGLE_P] = 345.0f;
-	CTRL_CNST[ANGLE_D] = 40.0f;
-	CTRL_CNST[SPEED_I] = 0.18f;
-	CTRL_CNST[SPEED_P] = 0.05f;
+	CTRL_CNST[ANGLE_P] = 320.0f;
+	CTRL_CNST[ANGLE_D] = 35.0f;
+	CTRL_CNST[SPEED_I] = 0.20f;
+	CTRL_CNST[SPEED_P] = 0.60f;
 	currentIndex = -1;
 	
 	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
