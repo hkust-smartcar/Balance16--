@@ -8,9 +8,9 @@
 #define GYRO_OFFSET 1.1142f
 #define DELTA_T 0.005f
 #define TG 0.25f
-#define DEADZONE_L 1400.0f
-#define DEADZONE_R 1000.0f
-#define LEFT_MOTOR_SCALE 0.87f
+#define DEADZONE_L 900.0f
+#define DEADZONE_R 900.0f
+#define LEFT_MOTOR_SCALE 0.89f
 
 enum {
 	STABLE_ANGLE,
@@ -32,24 +32,32 @@ const char CNST_NAME[CONST_CNT][20] = {
 };
 
 float theta, theta_raw, omega;
-float angleErrorIntrgral, angleError;
-float angleControlOut, speedControlOut;
-int16_t speedSP;
+float angleError;
+float angleControlOut;
+
+float speedControlAmount, speedControlAmountOld;
+float speedControlOut, speedControlAmountAverage;
+int16_t speedError;
+int32_t speedErrorIntegral;
+int16_t speedSP, speedAverage;
 
 int main(void) {
 
 	INIT();
 	
 	speed_l = speed_r = 0;
-	speedSP = 0;
 
 	theta = 0.0f;
-	angleErrorIntrgral = 0.0f;
 	angleError = 0.0f;
 
-	CTRL_CNST[STABLE_ANGLE] = -59.2f;
-	CTRL_CNST[ANGLE_P] = 80.0f;
-	CTRL_CNST[ANGLE_D] = 9.0f;
+	speedSP = 0;
+	speedErrorIntegral = 0;
+	speedControlAmount = speedControlAmountOld = 0.0f;
+	speedControlOut = 0.0f;
+
+	CTRL_CNST[STABLE_ANGLE] = -60.5f;
+	CTRL_CNST[ANGLE_P] = 250.0f;
+	CTRL_CNST[ANGLE_D] = 30.0f;
 	CTRL_CNST[SPEED_I] = 0.0f;
 	CTRL_CNST[SPEED_P] = 0.0f;
 	currentIndex = -1;
@@ -63,7 +71,7 @@ int main(void) {
 }
 
 void PIT0_ISR(void) {
-	static uint16_t TIME = 0, TIM_CNT = 0;
+	static uint16_t TIME = 0, TIM_CNT = 0, SPEED_CNT = 0;
 	TIME++; TIM_CNT++;
 	if (TIME == 500) {
 		TIME = 0;
@@ -72,23 +80,26 @@ void PIT0_ISR(void) {
 	if (TIM_CNT == 5) TIM_CNT = 0;
 
 	switch (TIM_CNT) {
-		case 0:
-		updateAngle();
-		angleControl();
-		if (printFlag) {
-			printf("%.3f %.3f\r", theta, omega);
-			// enc_data_r = getEncoder(ENC_R);
-			// printf("%d ", speed_r);
-			// printEncoder(ENC_R);
-		}
+		case 0: // angle control
+		updateAngle(); // obtain current angle with filter
+		angleControl(); // calculate angleControlOut
 		break; // case 0
 
-		case 1:
-
+		case 1: // speed control and average
+		SPEED_CNT++;
+		if (SPEED_CNT == 20) {
+			SPEED_CNT = 0;
+			updateSpeed(); // obtain current speed
+			speedControl(); // calculate speedControlAmount
+		}
+		speedControlAverage(SPEED_CNT); // smooth speedControlOut
 		break; // case 1
 
-		case 2:
-
+		case 2: // send data
+		if (printFlag) {
+			printf("%.3f %.3f\r",
+				angleControlOut, angleError);
+		}
 		break; //case 2
 
 		case 3:
@@ -104,8 +115,10 @@ void PIT0_ISR(void) {
 	}
 
 	// motor control output
-	setMotor(MOTOR_L, speedOut(MOTOR_L, LEFT_MOTOR_SCALE*angleControlOut));
-	setMotor(MOTOR_R, speedOut(MOTOR_R, angleControlOut));
+	setMotor(MOTOR_L, speedOut(MOTOR_L, 
+		LEFT_MOTOR_SCALE*(angleControlOut)));
+	setMotor(MOTOR_R, speedOut(MOTOR_R, 
+		(angleControlOut)));
 }
 
 void UART_RX_ISR(uint16_t ch) {
@@ -132,8 +145,11 @@ void UART_RX_ISR(uint16_t ch) {
 
 		case '&': // motor enable
 		motorEnable = 1;
-		angleErrorIntrgral = 0.0f;
 		angleError = 0.0f;
+		speedErrorIntegral = 0;
+		speedError = 0;
+		speedControlAmountOld = speedControlAmount = 0.0f;
+		speedControlOut = 0.0f;
 		break; //'&'
 
 		case ' ': // motor disable
@@ -151,12 +167,12 @@ void UART_RX_ISR(uint16_t ch) {
 			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, 0);
 			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, 0);
 			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH3, 3000);
-			for (int32_t i = 0; i < 1000000; i++);
+			for (int32_t i = 0; i < 10000000; i++);
 			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH0, 0);
 			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, 3000);
 			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, 3000);
 			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH3, 0);
-			for (int32_t i = 0; i < 1000000; i++);
+			for (int32_t i = 0; i < 10000000; i++);
 			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH0, 0);
 			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, 0);
 			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, 0);
@@ -176,52 +192,52 @@ void UART_RX_ISR(uint16_t ch) {
 		printf(CNST_NAME[currentIndex]);
 		break;
 
-		case 'l': // CTRL_CNST-0.0001f
-		if (currentIndex == -1)
-			printf("invalid currentIndex\r");
-		else CTRL_CNST[currentIndex] -= 0.0001f;
-		break;
-
-		case 'o': // CTRL_CNST+0.0001f
-		if (currentIndex == -1)
-			printf("invalid currentIndex\r");
-		else CTRL_CNST[currentIndex] += 0.0001f;
-		break;
-
-		case 'k': // CTRL_CNST-0.001f
+		case 'l': // CTRL_CNST-0.001f
 		if (currentIndex == -1)
 			printf("invalid currentIndex\r");
 		else CTRL_CNST[currentIndex] -= 0.001f;
 		break;
 
-		case 'i': // CTRL_CNST+0.001f
+		case 'o': // CTRL_CNST+0.001f
 		if (currentIndex == -1)
 			printf("invalid currentIndex\r");
 		else CTRL_CNST[currentIndex] += 0.001f;
 		break;
 
-		case 'j': // CTRL_CNST-0.01f
+		case 'k': // CTRL_CNST-0.01f
 		if (currentIndex == -1)
 			printf("invalid currentIndex\r");
 		else CTRL_CNST[currentIndex] -= 0.01f;
 		break;
 
-		case 'u': // CTRL_CNST+0.01f
+		case 'i': // CTRL_CNST+0.01f
 		if (currentIndex == -1)
 			printf("invalid currentIndex\r");
 		else CTRL_CNST[currentIndex] += 0.01f;
 		break;
 
-		case 'h': // CTRL_CNST-0.1f
+		case 'j': // CTRL_CNST-0.1f
 		if (currentIndex == -1)
 			printf("invalid currentIndex\r");
 		else CTRL_CNST[currentIndex] -= 0.1f;
 		break;
 
-		case 'y': // CTRL_CNST+0.1f
+		case 'u': // CTRL_CNST+0.1f
 		if (currentIndex == -1)
 			printf("invalid currentIndex\r");
 		else CTRL_CNST[currentIndex] += 0.1f;
+		break;
+
+		case 'h': // CTRL_CNST-1.0f
+		if (currentIndex == -1)
+			printf("invalid currentIndex\r");
+		else CTRL_CNST[currentIndex] -= 1.0f;
+		break;
+
+		case 'y': // CTRL_CNST+1.0f
+		if (currentIndex == -1)
+			printf("invalid currentIndex\r");
+		else CTRL_CNST[currentIndex] += 1.0f;
 		break;
 
 		default:
@@ -240,22 +256,30 @@ void updateAngle(void) {
 
 void angleControl(void) {
 	angleError = theta - CTRL_CNST[STABLE_ANGLE];
-	// angleErrorIntrgral += angleError;
 
-	// angleControlOut_l = CTRL_CNST[ANGLE_P]*angleErrorIntrgral
-	// 	+(CTRL_CNST[ANGLE_P]*CTRL_CNST[TM_L]+CTRL_CNST[ANGLE_D])*angleError
-	// 	+CTRL_CNST[TM_L]*CTRL_CNST[ANGLE_D]*omega;
-
-	// angleControlOut_r = CTRL_CNST[ANGLE_P]*angleErrorIntrgral
-	// 	+(CTRL_CNST[ANGLE_P]*CTRL_CNST[TM_R]+CTRL_CNST[ANGLE_D])*angleError
-	// 	+CTRL_CNST[TM_R]*CTRL_CNST[ANGLE_D]*omega;
-
-	angleControlOut =
+	angleControlOut = 
 		CTRL_CNST[ANGLE_P]*angleError+CTRL_CNST[ANGLE_D]*omega;
 }
 
-void speedControl(void) {
+void updateSpeed(void) {
+	enc_data_l = getEncoder(ENC_L);
+	enc_data_r = getEncoder(ENC_R);
+	speedAverage = (enc_data_l + enc_data_r) / 2;
+}
 
+void speedControl(void) {
+	speedError = speedSP - speedAverage;
+	speedErrorIntegral += speedError;
+	speedControlAmountOld = speedControlAmount;
+	speedControlAmount = CTRL_CNST[SPEED_I]*(float)speedErrorIntegral
+		+CTRL_CNST[SPEED_P]*(float)speedError;
+	speedControlAmountAverage =
+		(speedControlAmount-speedControlAmountOld)/20.0f;
+}
+
+void speedControlAverage(uint16_t count) {
+	speedControlOut =
+		speedControlAmountAverage*count+speedControlAmountOld;
 }
 
 int32_t speedOut(uint32_t id, float speedIn) {

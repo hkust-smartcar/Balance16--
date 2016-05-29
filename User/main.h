@@ -41,7 +41,9 @@ void setMotor(uint32_t, int32_t);
 
 void updateAngle(void);
 void angleControl(void);
+void updateSpeed(void);
 void speedControl(void);
+void speedControlAverage(uint16_t);
 int32_t speedOut(uint32_t, float);
 
 void printEncoder(uint32_t);
