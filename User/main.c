@@ -7,13 +7,14 @@
 #define GYRO_SCALE 65.5f
 #define GYRO_OFFSET 1.1142f
 #define DELTA_T 0.005f
-#define TG 0.25f
-#define DEADZONE_L 900.0f
-#define DEADZONE_R 900.0f
-#define LEFT_MOTOR_SCALE 0.89f
+// #define TG 0.25f
+#define DEADZONE_L 600.0f
+#define DEADZONE_R 450.0f
+#define LEFT_MOTOR_SCALE 0.93f
 
 enum {
 	STABLE_ANGLE,
+	TG,
 	ANGLE_P,
 	ANGLE_D,
 	SPEED_I,
@@ -25,6 +26,7 @@ float CTRL_CNST[CONST_CNT];
 int32_t currentIndex;
 const char CNST_NAME[CONST_CNT][20] = {
 	"STABLE_ANGLE\r",
+	"TG\r",
 	"ANGLE_P\r",
 	"ANGLE_D\r",
 	"SPEED_I\r",
@@ -51,15 +53,16 @@ int main(void) {
 	angleError = 0.0f;
 
 	speedSP = 0;
-	speedErrorIntegral = 0;
+	speedError = speedErrorIntegral = 0;
 	speedControlAmount = speedControlAmountOld = 0.0f;
 	speedControlOut = 0.0f;
 
-	CTRL_CNST[STABLE_ANGLE] = -60.5f;
-	CTRL_CNST[ANGLE_P] = 250.0f;
-	CTRL_CNST[ANGLE_D] = 30.0f;
-	CTRL_CNST[SPEED_I] = 0.0f;
-	CTRL_CNST[SPEED_P] = 0.0f;
+	CTRL_CNST[STABLE_ANGLE] = -63.5f;
+	CTRL_CNST[TG] = 2.0f;
+	CTRL_CNST[ANGLE_P] = 345.0f;
+	CTRL_CNST[ANGLE_D] = 40.0f;
+	CTRL_CNST[SPEED_I] = 0.18f;
+	CTRL_CNST[SPEED_P] = 0.05f;
 	currentIndex = -1;
 	
 	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
@@ -97,8 +100,8 @@ void PIT0_ISR(void) {
 
 		case 2: // send data
 		if (printFlag) {
-			printf("%.3f %.3f\r",
-				angleControlOut, angleError);
+			printf("%.3f %.3f %.3f\r",
+				angleControlOut, speedControlOut, angleError);
 		}
 		break; //case 2
 
@@ -116,9 +119,9 @@ void PIT0_ISR(void) {
 
 	// motor control output
 	setMotor(MOTOR_L, speedOut(MOTOR_L, 
-		LEFT_MOTOR_SCALE*(angleControlOut)));
+		LEFT_MOTOR_SCALE*(angleControlOut-speedControlOut)));
 	setMotor(MOTOR_R, speedOut(MOTOR_R, 
-		(angleControlOut)));
+		(angleControlOut-speedControlOut)));
 }
 
 void UART_RX_ISR(uint16_t ch) {
@@ -146,8 +149,8 @@ void UART_RX_ISR(uint16_t ch) {
 		case '&': // motor enable
 		motorEnable = 1;
 		angleError = 0.0f;
-		speedErrorIntegral = 0;
-		speedError = 0;
+		
+		speedError = speedErrorIntegral = 0;
 		speedControlAmountOld = speedControlAmount = 0.0f;
 		speedControlOut = 0.0f;
 		break; //'&'
@@ -187,7 +190,7 @@ void UART_RX_ISR(uint16_t ch) {
 		break; //'a'
 
 		case '0': case '1': case '2': case '3':
-		case '4': case '5': case '6':
+		case '4': case '5':
 		currentIndex = ch - '0';
 		printf(CNST_NAME[currentIndex]);
 		break;
@@ -269,7 +272,7 @@ void updateSpeed(void) {
 
 void speedControl(void) {
 	speedError = speedSP - speedAverage;
-	speedErrorIntegral += speedError;
+	speedErrorIntegral = speedErrorIntegral*0.9f+speedError;
 	speedControlAmountOld = speedControlAmount;
 	speedControlAmount = CTRL_CNST[SPEED_I]*(float)speedErrorIntegral
 		+CTRL_CNST[SPEED_P]*(float)speedError;
