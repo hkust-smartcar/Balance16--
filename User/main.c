@@ -5,12 +5,13 @@
 #define PI 3.14159265358979323846f
 #define RAD_TO_DEG  180.0f/PI
 #define GYRO_SCALE 65.5f
-#define GYRO_OFFSET 1.1142f
+#define GYRO_X_OFFSET -60
+#define GYRO_Y_OFFSET 1.1142f
 #define DELTA_T 0.005f
 // #define TG 0.25f
 #define DEADZONE_L 600.0f
 #define DEADZONE_R 450.0f
-#define LEFT_MOTOR_SCALE 0.98f
+#define LEFT_MOTOR_SCALE 1.00f // 0.98f
 
 enum {
 	STABLE_ANGLE,
@@ -19,6 +20,8 @@ enum {
 	ANGLE_D,
 	SPEED_I,
 	SPEED_P,
+	STR_REG_I,
+	STR_REG_P,
 	CONST_CNT
 };
 
@@ -30,7 +33,9 @@ const char CNST_NAME[CONST_CNT][20] = {
 	"ANGLE_P\r",
 	"ANGLE_D\r",
 	"SPEED_I\r",
-	"SPEED_P\r"
+	"SPEED_P\r",
+	"STR_REG_I\r",
+	"STR_REG_P\r"
 };
 
 float theta, theta_raw, omega;
@@ -43,6 +48,10 @@ int16_t speedError;
 int32_t speedErrorIntegral;
 int16_t speedSP, speedAverage;
 
+int16_t steeringError;
+int32_t steeringErrorIntegral;
+float steeringRegulateOut;
+
 int main(void) {
 
 	INIT();
@@ -51,11 +60,15 @@ int main(void) {
 
 	theta = 0.0f;
 	angleError = 0.0f;
+	angleControlOut = 0.0f;
 
 	speedSP = 0;
 	speedError = speedErrorIntegral = 0;
 	speedControlAmount = speedControlAmountOld = 0.0f;
 	speedControlOut = 0.0f;
+
+	steeringError = steeringErrorIntegral = 0;
+	steeringRegulateOut = 0.0f;
 
 	CTRL_CNST[STABLE_ANGLE] = -63.5f;
 	CTRL_CNST[TG] = 2.0f;
@@ -63,6 +76,8 @@ int main(void) {
 	CTRL_CNST[ANGLE_D] = 35.0f;
 	CTRL_CNST[SPEED_I] = 0.20f;
 	CTRL_CNST[SPEED_P] = 0.60f;
+	CTRL_CNST[STR_REG_I] = 0.05f;
+	CTRL_CNST[STR_REG_P] = 0.0f;
 	currentIndex = -1;
 	
 	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
@@ -100,13 +115,14 @@ void PIT0_ISR(void) {
 
 		case 2: // send data
 		if (printFlag) {
-			printf("%.3f %.3f %.3f\r",
-				angleControlOut, speedControlOut, angleError);
+			printf("%.3f %.3f %.3f %.3f %d\r",
+				angleControlOut, speedControlOut, 
+				angleError, steeringRegulateOut, steeringError);
 		}
 		break; //case 2
 
-		case 3:
-
+		case 3: // steering regulation
+		steeringRegulate();
 		break; //case 3
 
 		case 4:
@@ -119,9 +135,10 @@ void PIT0_ISR(void) {
 
 	// motor control output
 	setMotor(MOTOR_L, speedOut(MOTOR_L, 
-		LEFT_MOTOR_SCALE*(angleControlOut-speedControlOut)));
+		LEFT_MOTOR_SCALE*(angleControlOut-speedControlOut
+			-steeringRegulateOut)));
 	setMotor(MOTOR_R, speedOut(MOTOR_R, 
-		(angleControlOut-speedControlOut)));
+		(angleControlOut-speedControlOut+steeringRegulateOut)));
 }
 
 void UART_RX_ISR(uint16_t ch) {
@@ -159,6 +176,8 @@ void UART_RX_ISR(uint16_t ch) {
 		speedError = speedErrorIntegral = 0;
 		speedControlAmountOld = speedControlAmount = 0.0f;
 		speedControlOut = 0.0f;
+		steeringError = steeringErrorIntegral = 0;
+		steeringRegulateOut = 0.0f;
 		break; //'&'
 
 		case ' ': // motor disable
@@ -196,7 +215,7 @@ void UART_RX_ISR(uint16_t ch) {
 		break; //'a'
 
 		case '0': case '1': case '2': case '3':
-		case '4': case '5':
+		case '4': case '5': case '6': case '7':
 		currentIndex = ch - '0';
 		printf(CNST_NAME[currentIndex]);
 		break;
@@ -259,7 +278,7 @@ void updateAngle(void) {
 	mpu6050_read_gyro(gyro);
 	theta_raw = (float)atan2((double)accel[AZ & 0x0F],
 		-(double)accel[AX & 0x0F])*RAD_TO_DEG;
-	omega = -(float)gyro[GY & 0x0F]/GYRO_SCALE-GYRO_OFFSET;
+	omega = -(float)gyro[GY & 0x0F]/GYRO_SCALE-GYRO_Y_OFFSET;
 	theta += (omega+(theta_raw-theta)/TG)*DELTA_T;
 }
 
@@ -289,6 +308,13 @@ void speedControl(void) {
 void speedControlAverage(uint16_t count) {
 	speedControlOut =
 		speedControlAmountAverage*count+speedControlAmountOld;
+}
+
+void steeringRegulate(void) {
+	steeringError = gyro[GX & 0x0F]-GYRO_X_OFFSET;
+	steeringErrorIntegral = steeringErrorIntegral*0.9f+steeringError;
+	steeringRegulateOut = (float)steeringErrorIntegral*CTRL_CNST[STR_REG_I]
+		+(float)steeringError*CTRL_CNST[STR_REG_P];
 }
 
 int32_t speedOut(uint32_t id, float speedIn) {

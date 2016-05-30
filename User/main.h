@@ -44,6 +44,7 @@ void angleControl(void);
 void updateSpeed(void);
 void speedControl(void);
 void speedControlAverage(uint16_t);
+void steeringRegulate(void);
 int32_t speedOut(uint32_t, float);
 
 void printEncoder(uint32_t);
