@@ -50,10 +50,10 @@
 #define FTM1_CH1_DMAREQ         33
 #define FTM2_CH0_DMAREQ         34
 #define FTM2_CH1_DMAREQ         35
-#define FTM3_CH0_DMAREQ         36
-#define FTM3_CH1_DMAREQ         37
-#define FTM3_CH2_DMAREQ         38
-#define FTM3_CH3_DMAREQ         39  
+#define IEEE_1588_TIM0_DMAREQ   36
+#define IEEE_1588_TIM1_DMAREQ   37
+#define IEEE_1588_TIM2_DMAREQ   38
+#define IEEE_1588_TIM3_DMAREQ   39  
 #define ADC0_DMAREQ             40
 #define ADC1_DMAREQ             41
 #define CMP0_DMAREQ             42
@@ -68,20 +68,53 @@
 #define PORTC_DMAREQ            51
 #define PORTD_DMAREQ            52
 #define PORTE_DMAREQ            53
-#define FTM3_CH4_DMAREQ         54
-#define FTM3_CH5_DMAREQ         55
-#define FTM3_CH6_DMAREQ         56
-#define FTM3_CH7_DMAREQ         57
-#define MUX0_DMAREQ             58
-#define MUX1_DMAREQ             59
-#define MUX2_DMAREQ             60
-#define MUX3_DMAREQ             61
+#define MUX0_DMAREQ             54
+#define MUX1_DMAREQ             55
+#define MUX2_DMAREQ             56
+#define MUX3_DMAREQ             57
+#define MUX4_DMAREQ             58
+#define MUX5_DMAREQ             59
+#define MUX6_DMAREQ             60
+#define MUX7_DMAREQ             61
+#define MUX8_DMAREQ             62
+#define MUX9_DMAREQ             63
+
+/* DMA request source - MUX1 */
+#define I2S1_REV_DMAREQ         14
+#define I2S1_TRAN_DMAREQ        15
+#define FTM3_CH0_DMAREQ         24
+#define FTM3_CH1_DMAREQ         25
+#define FTM3_CH2_DMAREQ         26
+#define FTM3_CH3_DMAREQ         27
+#define FTM3_CH4_DMAREQ         28
+#define FTM3_CH5_DMAREQ         29
+#define FTM3_CH6_DMAREQ         30
+#define FTM3_CH7_DMAREQ         31
+#define ADC2_DMAREQ             42
+#define ADC3_DMAREQ             43
+#define CMP0_MUX1_DMAREQ        47
+#define CMP1_MUX1_DMAREQ        48
+#define CMP2_MUX1_DMAREQ        49
+#define CMP3_MUX1_DMAREQ        50
+#define PORTF_DMAREQ            53
 
 /* DMA通道 */
 #define HW_DMA_CH0    (0x00)  /* DMA0通道，以下一次类推 */
 #define HW_DMA_CH1    (0x01)  
 #define HW_DMA_CH2    (0x02)  
 #define HW_DMA_CH3    (0x03)  
+#define HW_DMA_CH4    (0x04)  
+#define HW_DMA_CH5    (0x05)  
+#define HW_DMA_CH6    (0x06)  
+#define HW_DMA_CH7    (0x07)  
+#define HW_DMA_CH8    (0x08)  
+#define HW_DMA_CH9    (0x09)  
+#define HW_DMA_CH10   (0x0A)  
+#define HW_DMA_CH11   (0x0B)  
+#define HW_DMA_CH12   (0x0C)  
+#define HW_DMA_CH13   (0x0D)  
+#define HW_DMA_CH14   (0x0E)  
+#define HW_DMA_CH15   (0x0F)  
 
 /**
  * \enum DMA_TriggerSource_Type
