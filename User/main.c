@@ -79,8 +79,12 @@ int main(void) {
 	CTRL_CNST[STR_REG_I] = 0.05f;
 	CTRL_CNST[STR_REG_P] = 0.0f;
 	currentIndex = -1;
-	
+
+#if ( MAIN_DEBUG == 0)
 	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
+#else
+	PIT_ITDMAConfig(HW_PIT_CH1, kPIT_IT_TOF, true);
+#endif // MAIN_DEBUG
 
 	while (1) {
 		
@@ -139,6 +143,15 @@ void PIT0_ISR(void) {
 			-steeringRegulateOut)));
 	setMotor(MOTOR_R, speedOut(MOTOR_R, 
 		(angleControlOut-speedControlOut+steeringRegulateOut)));
+}
+
+void PIT1_ISR(void) {
+	static uint16_t TIME = 0;
+	TIME++;
+	if (TIME == 500) {
+		TIME = 0;
+		LED2 = !LED2;
+	}
 }
 
 void UART_RX_ISR(uint16_t ch) {

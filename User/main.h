@@ -4,6 +4,8 @@
 	#define ISEXTERNAL
 #endif // IS_MAIN
 
+#define MAIN_DEBUG 1
+
 #include <math.h>
 #include "common.h"
 #include "gpio.h"
@@ -13,6 +15,7 @@
 #include "ftm.h"
 #include "i2c.h"
 #include "mpu6050.h"
+#include "dma.h"
 
 //GPIO
 #define LED1 PEout(12)
@@ -34,6 +37,7 @@
 
 void INIT(void);
 void PIT0_ISR(void);
+void PIT1_ISR(void);
 void UART_RX_ISR(uint16_t);
 
 int16_t getEncoder(uint32_t);
@@ -56,3 +60,5 @@ ISEXTERNAL int16_t enc_data_l, enc_data_r;
 ISEXTERNAL int8_t printFlag;
 ISEXTERNAL int16_t accel[3], gyro[3];
 ISEXTERNAL int8_t motorEnable; // 1: Enable
+
+ISEXTERNAL uint8_t ch_buffer; // DMA test

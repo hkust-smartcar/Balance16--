@@ -15,6 +15,15 @@ void INIT(void) {
 	
 	PIT_CallbackInstall(HW_PIT_CH0, PIT0_ISR);
 	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, false);
+
+#if ( MAIN_DEBUG == 1) // new feature testing
+	PIT_InitStruct.chl = HW_PIT_CH1;
+	PIT_InitStruct.timeInUs = 1000*1;
+	PIT_Init(&PIT_InitStruct);
+	
+	PIT_CallbackInstall(HW_PIT_CH1, PIT1_ISR);
+	PIT_ITDMAConfig(HW_PIT_CH1, kPIT_IT_TOF, false);
+#endif // MAIN_DEBUG
 	
 	//UART
 	UART_InitTypeDef UART_InitStruct;
@@ -27,8 +36,8 @@ void INIT(void) {
 	PORT_PinMuxConfig(HW_GPIOD, 6, kPinAlt3);
 	PORT_PinMuxConfig(HW_GPIOD, 7, kPinAlt3);
 	
-	UART_CallbackRxInstall(HW_UART0, UART_RX_ISR);
-	UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, true);
+	// UART_CallbackRxInstall(HW_UART0, UART_RX_ISR);
+	// UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, true);
 	
 	printFlag = 0;
 	
@@ -62,6 +71,64 @@ void INIT(void) {
 	mpuConfig.genable_self_test = false;
 	mpuConfig.gbypass_blpf = false;
 	mpu6050_config(&mpuConfig);
+
+	// DMA, uart loop
+	// rx DMA
+	DMA_InitTypeDef DMA_InitStruct;
+	DMA_InitStruct.chl = HW_DMA_CH0;
+	DMA_InitStruct.chlTriggerSource = UART0_REV_DMAREQ;
+	DMA_InitStruct.minorLoopByteCnt = 1;
+	DMA_InitStruct.majorLoopCnt = 1;
+	DMA_InitStruct.triggerSourceMode = kDMA_TriggerSource_Normal;
+
+	DMA_InitStruct.sAddrOffset = 0;
+	DMA_InitStruct.sAddr = (uint32_t)&UART0->D;
+	DMA_InitStruct.sDataWidth = kDMA_DataWidthBit_8;
+	DMA_InitStruct.sLastAddrAdj = 0;
+	DMA_InitStruct.sMod = kDMA_ModuloDisable;
+
+	DMA_InitStruct.dAddrOffset = 0;
+	DMA_InitStruct.dAddr = (uint32_t)&ch_buffer;
+	DMA_InitStruct.dDataWidth = kDMA_DataWidthBit_8;
+	DMA_InitStruct.dLastAddrAdj = 0;
+	DMA_InitStruct.dMod = kDMA_ModuloDisable;
+
+	DMA_Init(&DMA_InitStruct);
+
+	//tx DMA
+	DMA_InitStruct.chl = HW_DMA_CH1;
+	DMA_InitStruct.chlTriggerSource = MUX0_DMAREQ; // always enable
+	DMA_InitStruct.minorLoopByteCnt = 1;
+	DMA_InitStruct.majorLoopCnt = 1;
+	DMA_InitStruct.triggerSourceMode = kDMA_TriggerSource_Normal;
+
+	DMA_InitStruct.sAddrOffset = 0;
+	DMA_InitStruct.sAddr = (uint32_t)&ch_buffer;
+	DMA_InitStruct.sDataWidth =  kDMA_DataWidthBit_8;
+	DMA_InitStruct.sLastAddrAdj = 0;
+	DMA_InitStruct.sMod = kDMA_ModuloDisable;
+
+	DMA_InitStruct.dAddrOffset = 0;
+	DMA_InitStruct.dAddr = (uint32_t)&UART0->D;
+	DMA_InitStruct.dDataWidth = kDMA_DataWidthBit_8;
+	DMA_InitStruct.dLastAddrAdj = 0;
+	DMA_InitStruct.dMod = kDMA_ModuloDisable;
+
+	DMA_Init(&DMA_InitStruct);
+
+	//UART DMA config
+	UART_ITDMAConfig(HW_UART0, kUART_DMA_Rx, true);
+
+	//chl-chl link
+	DMA_EnableMajorLink(HW_DMA_CH0, HW_DMA_CH1, true);
+
+	//config auto-disable
+	DMA_EnableAutoDisableRequest(HW_DMA_CH0, false);
+	DMA_EnableAutoDisableRequest(HW_DMA_CH1, true);
+
+	//Enable channel
+	DMA_EnableRequest(HW_DMA_CH0);
+	DMA_EnableRequest(HW_DMA_CH1);
 }
 
 int16_t getEncoder(uint32_t instance) {
