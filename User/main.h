@@ -16,6 +16,7 @@
 #include "i2c.h"
 #include "mpu6050.h"
 #include "dma.h"
+#include "ov7725.h"
 
 //GPIO
 #define LED1 PEout(12)
@@ -54,11 +55,11 @@ int32_t speedOut(uint32_t, float);
 void printEncoder(uint32_t);
 void printMPU(uint32_t);
 
+uint8_t ov7725_Init(uint32_t);
+
 
 ISEXTERNAL int16_t speed_l, speed_r;
 ISEXTERNAL int16_t enc_data_l, enc_data_r;
 ISEXTERNAL int8_t printFlag;
 ISEXTERNAL int16_t accel[3], gyro[3];
 ISEXTERNAL int8_t motorEnable; // 1: Enable
-
-ISEXTERNAL uint8_t ch_buffer; // DMA test
