@@ -1,32 +1,17 @@
+/** main.c **
+ * main function
+ * parameter init
+ * PIT and UART handler
+ */
+
 #define IS_MAIN
 
+#include "board.h"
+#include "global.h"
+#include "control.h"
+#include "util.h"
 #include "main.h"
 
-#define PI 3.14159265358979323846f
-#define RAD_TO_DEG  180.0f/PI
-#define GYRO_SCALE 65.5f
-#define GYRO_X_OFFSET -60
-#define GYRO_Y_OFFSET 1.1142f
-#define DELTA_T 0.005f
-// #define TG 0.25f
-#define DEADZONE_L 600.0f
-#define DEADZONE_R 450.0f
-#define LEFT_MOTOR_SCALE 1.00f // 0.98f
-
-enum {
-	STABLE_ANGLE,
-	TG,
-	ANGLE_P,
-	ANGLE_D,
-	SPEED_I,
-	SPEED_P,
-	STR_REG_I,
-	STR_REG_P,
-	CONST_CNT
-};
-
-float CTRL_CNST[CONST_CNT];
-int32_t currentIndex;
 const char CNST_NAME[CONST_CNT][20] = {
 	"STABLE_ANGLE\r",
 	"TG\r",
@@ -38,53 +23,21 @@ const char CNST_NAME[CONST_CNT][20] = {
 	"STR_REG_P\r"
 };
 
-float theta, theta_raw, omega;
-float angleError;
-float angleControlOut;
-
-float speedControlAmount, speedControlAmountOld;
-float speedControlOut, speedControlAmountAverage;
-int16_t speedError;
-int32_t speedErrorIntegral;
-int16_t speedSP, speedAverage;
-
-int16_t steeringError;
-int32_t steeringErrorIntegral;
-float steeringRegulateOut;
-
 int main(void) {
 
 	INIT();
-	
-	speed_l = speed_r = 0;
 
-	theta = 0.0f;
-	angleError = 0.0f;
-	angleControlOut = 0.0f;
-
-	speedSP = 0;
-	speedError = speedErrorIntegral = 0;
-	speedControlAmount = speedControlAmountOld = 0.0f;
-	speedControlOut = 0.0f;
-
-	steeringError = steeringErrorIntegral = 0;
-	steeringRegulateOut = 0.0f;
-
-	CTRL_CNST[STABLE_ANGLE] = -63.5f;
-	CTRL_CNST[TG] = 2.0f;
-	CTRL_CNST[ANGLE_P] = 320.0f;
-	CTRL_CNST[ANGLE_D] = 35.0f;
-	CTRL_CNST[SPEED_I] = 0.20f;
-	CTRL_CNST[SPEED_P] = 0.60f;
-	CTRL_CNST[STR_REG_I] = 0.05f;
-	CTRL_CNST[STR_REG_P] = 0.0f;
-	currentIndex = -1;
-
-#if ( MAIN_DEBUG == 0)
+#if ( MAIN_DEBUG == 0 )
+	controlInit();
 	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
 #else
 	PIT_ITDMAConfig(HW_PIT_CH1, kPIT_IT_TOF, true);
 #endif // MAIN_DEBUG
+
+	// enable interrupt & DMA for ov7725
+	// GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_IT_FallingEdge, true);
+	// GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, true);
+	// GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_DMA_RisingEdge, true);
 
 	while (1) {
 		
@@ -119,9 +72,8 @@ void PIT0_ISR(void) {
 
 		case 2: // send data
 		if (printFlag) {
-			printf("%.3f %.3f %.3f %.3f %d\r",
-				angleControlOut, speedControlOut, 
-				angleError, steeringRegulateOut, steeringError);
+			printf("%.3f %.3f\r",
+				theta, theta_raw);
 		}
 		break; //case 2
 
@@ -154,6 +106,11 @@ void PIT1_ISR(void) {
 	}
 }
 
+#if ( MAIN_DEBUG == 1 )
+void UART_RX_ISR(uint16_t ch) {
+
+}
+#else
 void UART_RX_ISR(uint16_t ch) {
 	switch (ch) {
 		case 0x1E: // up
@@ -178,7 +135,7 @@ void UART_RX_ISR(uint16_t ch) {
 
 		break; //0x1D
 		
-		case 'S': // send data
+		case 'S': // toggle printFlag
 		printFlag = 1 - printFlag;
 		break; //'S'
 
@@ -285,70 +242,8 @@ void UART_RX_ISR(uint16_t ch) {
 			;
 	}
 }
+#endif
 
-void updateAngle(void) {
-	mpu6050_read_accel(accel);
-	mpu6050_read_gyro(gyro);
-	theta_raw = (float)atan2((double)accel[AZ & 0x0F],
-		-(double)accel[AX & 0x0F])*RAD_TO_DEG;
-	omega = -(float)gyro[GY & 0x0F]/GYRO_SCALE-GYRO_Y_OFFSET;
-	theta += (omega+(theta_raw-theta)/TG)*DELTA_T;
-}
-
-void angleControl(void) {
-	angleError = theta - CTRL_CNST[STABLE_ANGLE];
-
-	angleControlOut = 
-		CTRL_CNST[ANGLE_P]*angleError+CTRL_CNST[ANGLE_D]*omega;
-}
-
-void updateSpeed(void) {
-	enc_data_l = getEncoder(ENC_L);
-	enc_data_r = getEncoder(ENC_R);
-	speedAverage = (enc_data_l + enc_data_r) / 2;
-}
-
-void speedControl(void) {
-	speedError = speedSP - speedAverage;
-	speedErrorIntegral = speedErrorIntegral*0.9f+speedError;
-	speedControlAmountOld = speedControlAmount;
-	speedControlAmount = CTRL_CNST[SPEED_I]*(float)speedErrorIntegral
-		+CTRL_CNST[SPEED_P]*(float)speedError;
-	speedControlAmountAverage =
-		(speedControlAmount-speedControlAmountOld)/20.0f;
-}
-
-void speedControlAverage(uint16_t count) {
-	speedControlOut =
-		speedControlAmountAverage*count+speedControlAmountOld;
-}
-
-void steeringRegulate(void) {
-	steeringError = gyro[GX & 0x0F]-GYRO_X_OFFSET;
-	steeringErrorIntegral = steeringErrorIntegral*0.9f+steeringError;
-	steeringRegulateOut = (float)steeringErrorIntegral*CTRL_CNST[STR_REG_I]
-		+(float)steeringError*CTRL_CNST[STR_REG_P];
-}
-
-int32_t speedOut(uint32_t id, float speedIn) {
-	float output = speedIn;
-	switch (id) {
-		case MOTOR_L:
-		if (output > 0.0f)
-			output += DEADZONE_L;
-		if (output < 0.0f)
-			output -= DEADZONE_L;
-		break; //MOTOR_L
-
-		case MOTOR_R:
-		if (output > 0.0f)
-			output += DEADZONE_R;
-		if (output < 0.0f)
-			output -= DEADZONE_R;
-		break; //MOTOR_R
-
-		default:
-			;
-	}
-	return (int32_t)output;
+void ov7725_ISR(uint32_t dummy) {
+	
 }

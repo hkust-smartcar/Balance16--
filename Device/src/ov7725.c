@@ -3,7 +3,7 @@
 #include "i2c.h"
 
 
-#define OV7725_DEBUG		1
+#define OV7725_DEBUG		0
 #if ( OV7725_DEBUG == 1 )
 #include "uart.h"
 #define OV7725_TRACE	printf
