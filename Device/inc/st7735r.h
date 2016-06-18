@@ -35,8 +35,8 @@
 #define WHITE               0xFFFF//    (RGB888TO565(0xFFFFFF))
 #define BLACK               0x0000//    (RGB888TO565(0x000000))
 #define DARK_GREY           0x52AA//    (RGB888TO565(0x555555))
-#define GREY                0x001F//    (RGB888TO565(0xAAAAAA))
-#define RED                 0xAD55//    (RGB888TO565(0xFF0000))
+#define RED                 0x001F//    (RGB888TO565(0xAAAAAA))
+#define GREY                0xAD55//    (RGB888TO565(0xFF0000))
 #define ORANGE              0x04DF//    (RGB888TO565(0xFF9900))
 #define YELLOW              0x07FF//    (RGB888TO565(0xFFFF00))
 #define GREEN               0x07E0//    (RGB888TO565(0x00FF00))
@@ -67,12 +67,14 @@
 void st7735r_Init(uint32_t instance);
 void st7735r_FillColor(uint16_t color);
 void st7735r_PutPixel(uint8_t x, uint8_t y, uint16_t color);
+void st7735r_FillRegion(uint8_t xs, uint8_t xe, uint8_t ys, uint8_t ye, uint16_t color);
+void st7735r_PlotImg(uint8_t xs, uint8_t xe, uint8_t ys, uint8_t ye,
+	uint16_t color_t, uint16_t color_f, uint8_t* data, uint32_t len);
 
 // st7735r internal functions
 void st7735r_SetPixelPos(uint8_t x, uint8_t y);
+
 // st7735r control
-void st7735r_Enable(void);
-void st7735r_Disable(void);
 void st7735r_WriteCmd(uint8_t cmd);
 void st7735r_WriteData(uint8_t data);
 void st7735r_Reset(void);

@@ -4,6 +4,7 @@
 #include "common.h"
 #include "st7735r.h"
 
+
 void st7735r_Init(uint32_t instance) {
 	// GPIO Init
 	GPIO_QuickInit(ST7735R_DC_PORT, ST7735R_DC_PIN, kGPIO_Mode_OPP);
@@ -43,6 +44,7 @@ void st7735r_FillColor(uint16_t color) {
 	}
 }
 
+// (x, y) is global coordinate, not relative to current active region
 void st7735r_PutPixel(uint8_t x, uint8_t y, uint16_t color) {
 	st7735r_SetPixelPos(x, y);
 	st7735r_WriteData(color >> 8);
@@ -54,15 +56,86 @@ void st7735r_SetPixelPos(uint8_t x, uint8_t y) {
 	st7735r_WriteData(0x00);
 	st7735r_WriteData(x);		// X START
 	st7735r_WriteData(0x00);
-	st7735r_WriteData(x+1);		// X END
+	st7735r_WriteData(x);		// X END
 
 	st7735r_WriteCmd(0x2B);		// Row addr set
 	st7735r_WriteData(0x00);
 	st7735r_WriteData(y);		// Y START
 	st7735r_WriteData(0x00);
-	st7735r_WriteData(y+1);		// Y END
+	st7735r_WriteData(y);		// Y END
 
 	st7735r_WriteCmd(0x2C);		// write to RAM
+}
+
+void st7735r_FillRegion(uint8_t xs_in, uint8_t xe_in, uint8_t ys_in, uint8_t ye_in, uint16_t color) {
+	if (xe_in < xs_in) xs_in = xe_in;
+	if (ye_in < ys_in) ys_in = ye_in;
+
+	uint8_t xs = xs_in;
+	uint8_t xe = MIN(MAX_WIDTH-1, xe_in);
+	uint8_t ys = ys_in;
+	uint8_t ye = MIN(MAX_HEIGHT-1, ye_in);
+
+	uint16_t w = xe-xs+1;
+	uint16_t h = ye-ys+1;
+
+	st7735r_WriteCmd(0x2A);		// Column addr set
+	st7735r_WriteData(0x00);
+	st7735r_WriteData(xs);		// X START
+	st7735r_WriteData(0x00);
+	st7735r_WriteData(xe);		// X END
+
+	st7735r_WriteCmd(0x2B);		// Row addr set
+	st7735r_WriteData(0x00);
+	st7735r_WriteData(ys);		// Y START
+	st7735r_WriteData(0x00);
+	st7735r_WriteData(ye);		// Y END
+
+	st7735r_WriteCmd(0x2C);		// write to RAM
+	
+	for (uint16_t i = 0; i < w*h; i++) {
+		st7735r_WriteData(color >> 8);
+		st7735r_WriteData(color);
+	}
+}
+
+void st7735r_PlotImg(uint8_t xs_in, uint8_t xe_in, uint8_t ys_in, uint8_t ye_in,
+	uint16_t color_t, uint16_t color_f, uint8_t* data, uint32_t len) {
+
+	if (xe_in < xs_in) xs_in = xe_in;
+	if (ye_in < ys_in) ys_in = ye_in;
+
+	uint8_t xs = xs_in;
+	uint8_t xe = MIN(MAX_WIDTH-1, xe_in);
+	uint8_t ys = ys_in;
+	uint8_t ye = MIN(MAX_HEIGHT-1, ye_in);
+
+	st7735r_WriteCmd(0x2A);		// Column addr set
+	st7735r_WriteData(0x00);
+	st7735r_WriteData(xs);		// X START
+	st7735r_WriteData(0x00);
+	st7735r_WriteData(xe);		// X END
+
+	st7735r_WriteCmd(0x2B);		// Row addr set
+	st7735r_WriteData(0x00);
+	st7735r_WriteData(ys);		// Y START
+	st7735r_WriteData(0x00);
+	st7735r_WriteData(ye);		// Y END
+
+	st7735r_WriteCmd(0x2C);		// write to RAM
+
+	for (uint32_t i = 0; i < len; i++) {
+		for (uint8_t j = 0; j < 8; j++) {
+			if ((data[i]>>(7-j))&1u) {
+				st7735r_WriteData(color_t >> 8);
+				st7735r_WriteData(color_t);
+			}
+			else {
+				st7735r_WriteData(color_f >> 8);
+				st7735r_WriteData(color_f);
+			}
+		}
+	}
 }
 
 void st7735r_WriteCmd(uint8_t cmd) {

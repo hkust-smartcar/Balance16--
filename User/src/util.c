@@ -70,12 +70,14 @@ void INIT(void) {
 	// DMA_EnableAutoDisableRequest(HW_DMA_CH0, true); // auto disable
 	// UART_ITDMAConfig(HW_UART0, kUART_DMA_Tx, true); // DMA req on finished
 
-	// for (uint32_t i = 0; i < OV7725_H*(OV7725_W/8); i++)
-	// 	imgRaw[i] = i;
+	for (uint32_t i = 0; i < OV7725_H*(OV7725_W/8); i++)
+		imgRaw[i] = i;
 
 	// st7735r
 	st7735r_Init(SPI0_SCK_PC05_SOUT_PC06_SIN_PC07);
-	st7735r_FillColor(ORANGE);
+	st7735r_FillColor(BLACK);
+	
+	st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,imgRaw,OV7725_H*(OV7725_W/8));
 }
 #else
 void INIT(void) {

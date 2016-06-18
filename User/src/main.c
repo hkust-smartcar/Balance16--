@@ -103,11 +103,7 @@ void PIT1_ISR(void) {
 	if (TIME == 500) {
 		TIME = 0;
 		LED2 = !LED2;
-		st7735r_FillColor(ORANGE);
 		// DMA_EnableRequest(HW_DMA_CH0);
-	}
-	else if (TIME == 250) {
-		st7735r_FillColor(BLUE);
 	}
 }
 
