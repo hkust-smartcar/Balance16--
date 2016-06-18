@@ -72,8 +72,8 @@ void PIT0_ISR(void) {
 
 		case 2: // send data
 		if (printFlag) {
-			printf("%.3f %.3f\r",
-				theta, theta_raw);
+			printf("%.3f %.0f\r",
+				angleError, angleControlOut);
 		}
 		break; //case 2
 
@@ -103,6 +103,11 @@ void PIT1_ISR(void) {
 	if (TIME == 500) {
 		TIME = 0;
 		LED2 = !LED2;
+		st7735r_FillColor(ORANGE);
+		// DMA_EnableRequest(HW_DMA_CH0);
+	}
+	else if (TIME == 250) {
+		st7735r_FillColor(BLUE);
 	}
 }
 

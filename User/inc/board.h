@@ -1,12 +1,14 @@
 /** board.h **
  * general information of mainboard
  */
+#ifndef _USER_BOARD_H_
+#define _USER_BOARD_H_
 
-#define MAIN_DEBUG 0
+#define MAIN_DEBUG 1
 
 // GPIO
-#define LED1 PEout(12)
-#define LED2 PEout(11)
+#define LED1 PDout(4)
+#define LED2 PDout(5)
 
 // Encoder & Motor
 #define ENC_L HW_FTM2
@@ -63,3 +65,5 @@
 #define OV7725_HREF_PIN 10
 #define OV7725_DATA_PORT HW_GPIOB
 #define OV7725_DATA_PIN_OFFSET 16
+
+#endif // _USER_BOARD_H_

@@ -12,10 +12,10 @@
 #if ( MAIN_DEBUG == 1 ) // new feature testing
 void INIT(void) {
 	// GPIO
-	GPIO_QuickInit(HW_GPIOE, 12, kGPIO_Mode_OPP);
-	GPIO_QuickInit(HW_GPIOE, 11, kGPIO_Mode_OPP);
-	GPIO_WriteBit(HW_GPIOE, 12, 1);
-	GPIO_WriteBit(HW_GPIOE, 11, 1);
+	GPIO_QuickInit(HW_GPIOD, 4, kGPIO_Mode_OPP);
+	GPIO_QuickInit(HW_GPIOD, 5, kGPIO_Mode_OPP);
+	GPIO_WriteBit(HW_GPIOD, 4, 1);
+	GPIO_WriteBit(HW_GPIOD, 5, 1);
 
 	//PIT
 	PIT_InitTypeDef PIT_InitStruct;
@@ -26,52 +26,56 @@ void INIT(void) {
 	PIT_CallbackInstall(HW_PIT_CH1, PIT1_ISR);
 	PIT_ITDMAConfig(HW_PIT_CH1, kPIT_IT_TOF, false);
 
-	// UART
-	UART_InitTypeDef UART_InitStruct;
-	UART_InitStruct.instance = HW_UART0;
-	UART_InitStruct.baudrate = 115200;
-	UART_InitStruct.parityMode = kUART_ParityDisabled;
-	UART_InitStruct.bitPerChar = kUART_8BitsPerChar;
-	UART_Init(&UART_InitStruct);
+	// // UART
+	// UART_InitTypeDef UART_InitStruct;
+	// UART_InitStruct.instance = HW_UART0;
+	// UART_InitStruct.baudrate = 115200;
+	// UART_InitStruct.parityMode = kUART_ParityDisabled;
+	// UART_InitStruct.bitPerChar = kUART_8BitsPerChar;
+	// UART_Init(&UART_InitStruct);
 	
-	PORT_PinMuxConfig(HW_GPIOD, 6, kPinAlt3);
-	PORT_PinMuxConfig(HW_GPIOD, 7, kPinAlt3);
+	// PORT_PinMuxConfig(HW_GPIOD, 6, kPinAlt3);
+	// PORT_PinMuxConfig(HW_GPIOD, 7, kPinAlt3);
 	
-	UART_CallbackRxInstall(HW_UART0, UART_RX_ISR);
-	UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, true);
+	// UART_CallbackRxInstall(HW_UART0, UART_RX_ISR);
+	// UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, true);
 	
-	printFlag = 0;
+	// printFlag = 0;
 
 	// OV7725
-	ov7725_Init(I2C1_SCL_PC10_SDA_PC11);
+	// ov7725_Init(I2C1_SCL_PC10_SDA_PC11);
 
 	// DMA for img data
-	DMA_InitTypeDef DMA_InitStruct;
+	// DMA_InitTypeDef DMA_InitStruct;
 
-	DMA_InitStruct.chl = HW_DMA_CH0;
-	DMA_InitStruct.chlTriggerSource = UART0_TRAN_DMAREQ; // on UART0 Tx finished
-	DMA_InitStruct.minorLoopByteCnt = 1;
-	DMA_InitStruct.majorLoopCnt = (int32_t)OV7725_H*(OV7725_W/8);
-	DMA_InitStruct.triggerSourceMode = kDMA_TriggerSource_Normal;
+	// DMA_InitStruct.chl = HW_DMA_CH0;
+	// DMA_InitStruct.chlTriggerSource = UART0_TRAN_DMAREQ; // on UART0 Tx finished
+	// DMA_InitStruct.minorLoopByteCnt = 1;
+	// DMA_InitStruct.majorLoopCnt = (int32_t)OV7725_H*(OV7725_W/8);
+	// DMA_InitStruct.triggerSourceMode = kDMA_TriggerSource_Normal;
 
-	DMA_InitStruct.sAddr = (uint32_t)imgRaw;
-	DMA_InitStruct.sAddrOffset = 1;
-	DMA_InitStruct.sLastAddrAdj = (int32_t)(-OV7725_H*(OV7725_W/8)); // loop back
-	DMA_InitStruct.sDataWidth = kDMA_DataWidthBit_8;
-	DMA_InitStruct.sMod = kDMA_ModuloDisable;
+	// DMA_InitStruct.sAddr = (uint32_t)imgRaw;
+	// DMA_InitStruct.sAddrOffset = 1;
+	// DMA_InitStruct.sLastAddrAdj = (int32_t)(-OV7725_H*(OV7725_W/8)); // loop back
+	// DMA_InitStruct.sDataWidth = kDMA_DataWidthBit_8;
+	// DMA_InitStruct.sMod = kDMA_ModuloDisable;
 
-	DMA_InitStruct.dAddr = (uint32_t)&UART0->D;
-	DMA_InitStruct.dAddrOffset = 0;
-	DMA_InitStruct.dLastAddrAdj = 0;
-	DMA_InitStruct.dDataWidth = kDMA_DataWidthBit_8;
-	DMA_InitStruct.dMod = kDMA_ModuloDisable;
+	// DMA_InitStruct.dAddr = (uint32_t)&UART0->D;
+	// DMA_InitStruct.dAddrOffset = 0;
+	// DMA_InitStruct.dLastAddrAdj = 0;
+	// DMA_InitStruct.dDataWidth = kDMA_DataWidthBit_8;
+	// DMA_InitStruct.dMod = kDMA_ModuloDisable;
 
-	DMA_Init(&DMA_InitStruct);
-	DMA_EnableAutoDisableRequest(HW_DMA_CH0, true); // auto disable
-	UART_ITDMAConfig(HW_UART0, kUART_DMA_Tx, true); // DMA req on finished
+	// DMA_Init(&DMA_InitStruct);
+	// DMA_EnableAutoDisableRequest(HW_DMA_CH0, true); // auto disable
+	// UART_ITDMAConfig(HW_UART0, kUART_DMA_Tx, true); // DMA req on finished
 
-	for (uint32_t i = 0; i < OV7725_H*(OV7725_W/8); i++)
-		imgRaw[i] = i;
+	// for (uint32_t i = 0; i < OV7725_H*(OV7725_W/8); i++)
+	// 	imgRaw[i] = i;
+
+	// st7735r
+	st7735r_Init(SPI0_SCK_PC05_SOUT_PC06_SIN_PC07);
+	st7735r_FillColor(ORANGE);
 }
 #else
 void INIT(void) {

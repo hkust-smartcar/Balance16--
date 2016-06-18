@@ -21,11 +21,11 @@ void controlInit(void) {
 
 	steeringRegulateOut = 0.0f;
 
-	CTRL_CNST[STABLE_ANGLE] = -63.5f;
-	CTRL_CNST[TG] = 1.0f;
-	CTRL_CNST[ANGLE_P] = 320.0f;
-	CTRL_CNST[ANGLE_D] = 35.0f;
-	CTRL_CNST[SPEED_I] = 0.20f;
+	CTRL_CNST[STABLE_ANGLE] = -58.7f;
+	CTRL_CNST[TG] = 0.6f;
+	CTRL_CNST[ANGLE_P] = 390.0f;
+	CTRL_CNST[ANGLE_D] = 38.0f;
+	CTRL_CNST[SPEED_I] = 0.35f;
 	CTRL_CNST[SPEED_P] = 0.60f;
 	CTRL_CNST[STR_REG_I] = 0.05f;
 	CTRL_CNST[STR_REG_P] = 0.0f;

@@ -1,3 +1,6 @@
+#ifndef _USER_CONTROL_H_
+#define _USER_CONTROL_H_
+
 #include <math.h>
 #include "common.h"
 
@@ -7,8 +10,8 @@
 #define GYRO_X_OFFSET -60
 #define GYRO_Y_OFFSET 1.1142f
 #define DELTA_T 0.005f
-#define DEADZONE_L 600.0f
-#define DEADZONE_R 450.0f
+#define DEADZONE_L 400.0f
+#define DEADZONE_R 300.0f
 #define LEFT_MOTOR_SCALE 1.00f
 
 void controlInit(void);
@@ -19,3 +22,5 @@ void speedControl(void);
 void speedControlAverage(uint16_t count);
 void steeringRegulate(void);
 int32_t speedOut(uint32_t id, float speedIn);
+
+#endif // _USER_CONTROL_H_

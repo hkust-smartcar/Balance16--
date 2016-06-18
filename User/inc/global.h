@@ -2,6 +2,9 @@
  * all global variable
  */
 
+#ifndef _USER_GLOBAL_H_
+#define _USER_GLOBAL_H_
+
 #ifdef _GLOBAL_C_
  #define EXT
 #else
@@ -37,3 +40,5 @@ EXT int8_t currentIndex;
 
 EXT uint8_t imgRaw[OV7725_H*(OV7725_W/8)];
 EXT uint8_t img[OV7725_H*OV7725_W];
+
+#endif // _USER_GLOBAL_H_
