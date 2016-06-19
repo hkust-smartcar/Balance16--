@@ -25,10 +25,10 @@ void INIT(void) {
 	GPIO_QuickInit(HW_GPIOA, 5, kGPIO_Mode_IPU);
 	GPIO_QuickInit(HW_GPIOA, 6, kGPIO_Mode_IPU);
 	// GPIO_QuickInit(HW_GPIOA, 7, kGPIO_Mode_IPU);
-	GPIO_CallbackInstall(HW_GPIOA, Button_Handler);
-	GPIO_ITDMAConfig(HW_GPIOA, 4, kGPIO_IT_FallingEdge, true);
-	GPIO_ITDMAConfig(HW_GPIOA, 5, kGPIO_IT_FallingEdge, true);
-	GPIO_ITDMAConfig(HW_GPIOA, 6, kGPIO_IT_FallingEdge, true);
+	// GPIO_CallbackInstall(HW_GPIOA, Button_Handler);
+	// GPIO_ITDMAConfig(HW_GPIOA, 4, kGPIO_IT_FallingEdge, true);
+	// GPIO_ITDMAConfig(HW_GPIOA, 5, kGPIO_IT_FallingEdge, true);
+	// GPIO_ITDMAConfig(HW_GPIOA, 6, kGPIO_IT_FallingEdge, true);
 	// GPIO_ITDMAConfig(HW_GPIOA, 7, kGPIO_IT_FallingEdge, true);
 
 	//PIT
@@ -171,13 +171,21 @@ static void Button_Handler(uint32_t array) {
 		LED3 = !LED3;
 	}
 	else if ((array>>5)&1U) {
-		st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,printBuffer,OV7725_H*(OV7725_W/8));
+		GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, false);
+		GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, false);
+		ov7725BufferState = OV7725_BUFFER_LOCKED;
+		ov7725TransferState = OV7725_PENDING;
+		st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,imgRaw,OV7725_H*(OV7725_W/8));
 		LED4 = !LED4;
+		ov7725BufferState = OV7725_BUFFER_UNLOCKED;
+		GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, true);
+		GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, true);
 	}
-	else if ((array>>6)&1U) {
-		DMA_SetSourceAddress(HW_DMA_CH0, (uint32_t)imgRaw);
-		DMA_EnableRequest(HW_DMA_CH0);
-	}
+	// else if ((array>>6)&1U) {
+	// 	// ov7725BufferState = OV7725_BUFFER_LOCKED;
+	// 	DMA_SetSourceAddress(HW_DMA_CH0, (uint32_t)imgRaw);
+	// 	DMA_EnableRequest(HW_DMA_CH0);
+	// }
 
 	GPIO_ITDMAConfig(HW_GPIOA, 4, kGPIO_IT_FallingEdge, true);
 	GPIO_ITDMAConfig(HW_GPIOA, 5, kGPIO_IT_FallingEdge, true);
@@ -186,10 +194,17 @@ static void Button_Handler(uint32_t array) {
 }
 
 uint8_t ov7725_Init(uint32_t I2C_MAP) {
+	// sccb bus init
 	uint32_t instance = I2C_QuickInit(I2C_MAP, 100*1000);
 	uint8_t err = ov7725_probe(instance);
 	if (err) return err;
+
+	// set image size
 	ov7725_set_image_size(H_80_W_60);
+
+	// buffer state and transfer state init
+	ov7725BufferState = OV7725_BUFFER_UNLOCKED;
+	ov7725TransferState = OV7725_PENDING;
 
 	// ctrl pin init
 	GPIO_QuickInit(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_Mode_IFT);
@@ -246,21 +261,139 @@ void ov7725_ISR(uint32_t array) {
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, false);
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, false);
 
-	if ((array>>OV7725_VSYNC_PIN)&1U) {			// VSYNC
-		// printf("\r\rV");
-		rowCnt = 0;
-		uint8_t* tmp = imgRaw;
-		imgRaw = imgBuffer;
-		imgBuffer = tmp;
-		DMA_SetDestAddress(HW_DMA_CH1, (uint32_t)imgBuffer);
-	}
-	else if ((array>>OV7725_HREF_PIN)&1U) {		// HREF
-		// printf("H");
-		if (rowCnt < OV7725_H) {
+	// if ((array>>OV7725_VSYNC_PIN)&1U) {			// VSYNC
+	// 	// printf("\r\rV");
+	// 	rowCnt = 0;
+	// 	uint8_t* tmp = imgRaw;
+	// 	imgRaw = imgBuffer;
+	// 	imgBuffer = tmp;
+	// 	DMA_SetDestAddress(HW_DMA_CH1, (uint32_t)imgBuffer);
+	// }
+	// else if ((array>>OV7725_HREF_PIN)&1U) {		// HREF
+	// 	// printf("H");
+	// 	if (rowCnt < OV7725_H) {
+	// 		rowCnt++;
+	// 		DMA_EnableRequest(HW_DMA_CH1);
+	// 	}
+	// }
+
+	// switch (ov7725TransferState) {
+	// 	case OV7725_PENDING:
+	// 	switch (ov7725BufferState) {
+	// 		case OV7725_BUFFER_LOCKED:
+	// 		// do nothing
+	// 		break; // OV7725_BUFFER_LOCKED
+
+	// 		case OV7725_BUFFER_UNLOCKED:
+	// 		if ((array>>OV7725_VSYNC_PIN)&1U) {
+	// 			// update state
+	// 			ov7725TransferState = OV7725_IN_PROCESS;
+
+	// 			// clear rowCnt
+	// 			rowCnt = 0;
+
+	// 			// // exchange back and front buffer
+	// 			// uint8_t* tmp = imgRaw;
+	// 			// imgRaw = imgBuffer;
+	// 			// imgBuffer = tmp;
+
+	// 			// set DMA dest addr to new buffer
+	// 			DMA_SetDestAddress(HW_DMA_CH1, (uint32_t)imgBuffer);
+	// 		}
+	// 		else if ((array>>OV7725_HREF_PIN)&1U) {
+	// 			// do nothing
+	// 		}
+	// 		break; //OV7725_BUFFER_UNLOCKED
+
+	// 		default:
+	// 		;
+	// 	}
+	// 	break; // OV7725_PENDING
+
+	// 	case OV7725_IN_PROCESS:
+	// 	// switch (ov7725BufferState) {
+	// 	// 	case OV7725_BUFFER_LOCKED:
+	// 	// 	if ((array>>OV7725_VSYNC_PIN)&1U) {
+				
+	// 	// 	}
+	// 	// 	else if ((array>>OV7725_HREF_PIN)&1U) {
+				
+	// 	// 	}
+	// 	// 	break; // OV7725_BUFFER_LOCKED
+
+	// 	// 	case OV7725_BUFFER_UNLOCKED:
+	// 	// 	if ((array>>OV7725_VSYNC_PIN)&1U) {
+				
+	// 	// 	}
+	// 	// 	else if ((array>>OV7725_HREF_PIN)&1U) {
+				
+	// 	// 	}
+	// 	// 	break; //OV7725_BUFFER_UNLOCKED
+
+	// 	// 	default:
+	// 	// 	;
+	// 	// }
+	// 	if ((array>>OV7725_VSYNC_PIN)&1U) {
+	// 		// do nothing
+	// 	}
+	// 	else if ((array>>OV7725_HREF_PIN)&1U) {
+	// 		// increase rowCnt and start DMA
+	// 		rowCnt++;
+	// 		DMA_EnableRequest(HW_DMA_CH1);
+
+	// 		// finished?
+	// 		if (rowCnt == OV7725_H) {
+	// 			// update state
+	// 			ov7725TransferState = OV7725_PENDING;
+
+	// 			st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,imgRaw,OV7725_H*(OV7725_W/8));
+	// 		}
+	// 	}
+	// 	break; // OV7725_IN_PROCESS
+
+	// 	default:
+	// 	;
+	// }
+	switch (ov7725TransferState) {
+		case OV7725_PENDING:
+			if ((array>>OV7725_VSYNC_PIN)&1U) {
+				// update state
+				ov7725TransferState = OV7725_IN_PROCESS;
+
+				// clear rowCnt
+				rowCnt = 0;
+
+				// set DMA dest addr to new buffer
+				DMA_SetDestAddress(HW_DMA_CH1, (uint32_t)imgBuffer);
+			}
+			else if ((array>>OV7725_HREF_PIN)&1U) {
+				// do nothing
+			}
+		break; // OV7725_PENDING
+
+		case OV7725_IN_PROCESS:
+		if ((array>>OV7725_VSYNC_PIN)&1U) {
+			// do nothing
+		}
+		else if ((array>>OV7725_HREF_PIN)&1U) {
+			// increase rowCnt and start DMA
 			rowCnt++;
 			DMA_EnableRequest(HW_DMA_CH1);
+
+			// finished?
+			if (rowCnt == OV7725_H) {
+				// update state
+				ov7725TransferState = OV7725_PENDING;
+				
+				st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,imgBuffer,OV7725_H*(OV7725_W/8));
+			}
 		}
+		break; // OV7725_IN_PROCESS
+
+		default:
+		;
 	}
+
 
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, true);
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, true);
