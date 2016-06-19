@@ -20,13 +20,16 @@
 
 void INIT(void);
 
-int16_t getEncoder(uint32_t);
-void setMotor(uint32_t, int32_t);
+int16_t getEncoder(uint32_t instance);
+void setMotor(uint32_t id, int32_t pwmDuty);
 
-void printEncoder(uint32_t);
-void printMPU(uint32_t);
+void printEncoder(uint32_t id);
+void printMPU(uint32_t id);
 
-uint8_t ov7725_Init(uint32_t);
-void extractImage(void);
+uint8_t ov7725_Init(uint32_t I2C_MAP);
+// void extractImage(void);
+void ov7725_ISR(uint32_t array);
+
+static void Button_Handler(uint32_t array);
 
 #endif // _USER_UTIL_H_

@@ -35,9 +35,9 @@ int main(void) {
 #endif // MAIN_DEBUG
 
 	// enable interrupt & DMA for ov7725
-	// GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_IT_FallingEdge, true);
-	// GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, true);
-	// GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_DMA_RisingEdge, true);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_DMA_RisingEdge, true);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, true);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, true);
 
 	while (1) {
 		
@@ -102,6 +102,7 @@ void PIT1_ISR(void) {
 	TIME++;
 	if (TIME == 500) {
 		TIME = 0;
+		LED1 = !LED1;
 		LED2 = !LED2;
 		// DMA_EnableRequest(HW_DMA_CH0);
 	}
@@ -243,8 +244,4 @@ void UART_RX_ISR(uint16_t ch) {
 			;
 	}
 }
-#endif
-
-void ov7725_ISR(uint32_t dummy) {
-	
-}
+#endif // MAIN_DEBUG

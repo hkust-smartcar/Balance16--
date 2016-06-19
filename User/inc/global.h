@@ -38,7 +38,11 @@ EXT int8_t motorEnable;
 EXT float CTRL_CNST[CONST_CNT];
 EXT int8_t currentIndex;
 
-EXT uint8_t imgRaw[OV7725_H*(OV7725_W/8)];
+EXT uint8_t* imgRaw;
+EXT uint8_t* imgBuffer;
+EXT uint8_t imgBuffer1[OV7725_H*(OV7725_W/8)];
+EXT uint8_t imgBuffer2[OV7725_H*(OV7725_W/8)];
+EXT uint8_t printBuffer[OV7725_H*(OV7725_W/8)];
 EXT uint8_t img[OV7725_H*OV7725_W];
 
 #endif // _USER_GLOBAL_H_

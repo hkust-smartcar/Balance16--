@@ -14,8 +14,22 @@ void INIT(void) {
 	// GPIO
 	GPIO_QuickInit(HW_GPIOD, 4, kGPIO_Mode_OPP);
 	GPIO_QuickInit(HW_GPIOD, 5, kGPIO_Mode_OPP);
+	GPIO_QuickInit(HW_GPIOD, 8, kGPIO_Mode_OPP);
+	GPIO_QuickInit(HW_GPIOD, 9, kGPIO_Mode_OPP);
 	GPIO_WriteBit(HW_GPIOD, 4, 1);
-	GPIO_WriteBit(HW_GPIOD, 5, 1);
+	GPIO_WriteBit(HW_GPIOD, 5, 0);
+	GPIO_WriteBit(HW_GPIOD, 8, 1);
+	GPIO_WriteBit(HW_GPIOD, 9, 1);
+
+	GPIO_QuickInit(HW_GPIOA, 4, kGPIO_Mode_IPU);
+	GPIO_QuickInit(HW_GPIOA, 5, kGPIO_Mode_IPU);
+	GPIO_QuickInit(HW_GPIOA, 6, kGPIO_Mode_IPU);
+	// GPIO_QuickInit(HW_GPIOA, 7, kGPIO_Mode_IPU);
+	GPIO_CallbackInstall(HW_GPIOA, Button_Handler);
+	GPIO_ITDMAConfig(HW_GPIOA, 4, kGPIO_IT_FallingEdge, true);
+	GPIO_ITDMAConfig(HW_GPIOA, 5, kGPIO_IT_FallingEdge, true);
+	GPIO_ITDMAConfig(HW_GPIOA, 6, kGPIO_IT_FallingEdge, true);
+	// GPIO_ITDMAConfig(HW_GPIOA, 7, kGPIO_IT_FallingEdge, true);
 
 	//PIT
 	PIT_InitTypeDef PIT_InitStruct;
@@ -26,58 +40,59 @@ void INIT(void) {
 	PIT_CallbackInstall(HW_PIT_CH1, PIT1_ISR);
 	PIT_ITDMAConfig(HW_PIT_CH1, kPIT_IT_TOF, false);
 
-	// // UART
-	// UART_InitTypeDef UART_InitStruct;
-	// UART_InitStruct.instance = HW_UART0;
-	// UART_InitStruct.baudrate = 115200;
-	// UART_InitStruct.parityMode = kUART_ParityDisabled;
-	// UART_InitStruct.bitPerChar = kUART_8BitsPerChar;
-	// UART_Init(&UART_InitStruct);
+	// UART
+	UART_InitTypeDef UART_InitStruct;
+	UART_InitStruct.instance = HW_UART0;
+	UART_InitStruct.baudrate = 115200;
+	UART_InitStruct.parityMode = kUART_ParityDisabled;
+	UART_InitStruct.bitPerChar = kUART_8BitsPerChar;
+	UART_Init(&UART_InitStruct);
 	
-	// PORT_PinMuxConfig(HW_GPIOD, 6, kPinAlt3);
-	// PORT_PinMuxConfig(HW_GPIOD, 7, kPinAlt3);
+	PORT_PinMuxConfig(HW_GPIOD, 6, kPinAlt3);
+	PORT_PinMuxConfig(HW_GPIOD, 7, kPinAlt3);
 	
-	// UART_CallbackRxInstall(HW_UART0, UART_RX_ISR);
-	// UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, true);
+	UART_CallbackRxInstall(HW_UART0, UART_RX_ISR);
+	UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, true);
 	
-	// printFlag = 0;
+	printFlag = 0;
 
 	// OV7725
-	// ov7725_Init(I2C1_SCL_PC10_SDA_PC11);
+	ov7725_Init(I2C1_SCL_PC10_SDA_PC11);
 
 	// DMA for img data
-	// DMA_InitTypeDef DMA_InitStruct;
+	DMA_InitTypeDef DMA_InitStruct;
 
-	// DMA_InitStruct.chl = HW_DMA_CH0;
-	// DMA_InitStruct.chlTriggerSource = UART0_TRAN_DMAREQ; // on UART0 Tx finished
-	// DMA_InitStruct.minorLoopByteCnt = 1;
-	// DMA_InitStruct.majorLoopCnt = (int32_t)OV7725_H*(OV7725_W/8);
-	// DMA_InitStruct.triggerSourceMode = kDMA_TriggerSource_Normal;
+	DMA_InitStruct.chl = HW_DMA_CH0;
+	DMA_InitStruct.chlTriggerSource = MUX0_DMAREQ; // always enable
+	DMA_InitStruct.minorLoopByteCnt = (int32_t)OV7725_H*(OV7725_W/8);
+	DMA_InitStruct.majorLoopCnt = 1;
+	DMA_InitStruct.triggerSourceMode = kDMA_TriggerSource_Normal;
 
-	// DMA_InitStruct.sAddr = (uint32_t)imgRaw;
-	// DMA_InitStruct.sAddrOffset = 1;
-	// DMA_InitStruct.sLastAddrAdj = (int32_t)(-OV7725_H*(OV7725_W/8)); // loop back
-	// DMA_InitStruct.sDataWidth = kDMA_DataWidthBit_8;
-	// DMA_InitStruct.sMod = kDMA_ModuloDisable;
+	DMA_InitStruct.sAddr = (uint32_t)imgRaw;
+	DMA_InitStruct.sAddrOffset = 1;
+	DMA_InitStruct.sLastAddrAdj = (int32_t)(-OV7725_H*(OV7725_W/8)); // loop back
+	DMA_InitStruct.sDataWidth = kDMA_DataWidthBit_8;
+	DMA_InitStruct.sMod = kDMA_ModuloDisable;
 
-	// DMA_InitStruct.dAddr = (uint32_t)&UART0->D;
-	// DMA_InitStruct.dAddrOffset = 0;
-	// DMA_InitStruct.dLastAddrAdj = 0;
-	// DMA_InitStruct.dDataWidth = kDMA_DataWidthBit_8;
-	// DMA_InitStruct.dMod = kDMA_ModuloDisable;
+	DMA_InitStruct.dAddr = (uint32_t)printBuffer;
+	DMA_InitStruct.dAddrOffset = 1;
+	DMA_InitStruct.dLastAddrAdj = (int32_t)(-OV7725_H*(OV7725_W/8)); // loop back
+	DMA_InitStruct.dDataWidth = kDMA_DataWidthBit_8;
+	DMA_InitStruct.dMod = kDMA_ModuloDisable;
 
-	// DMA_Init(&DMA_InitStruct);
-	// DMA_EnableAutoDisableRequest(HW_DMA_CH0, true); // auto disable
+	DMA_Init(&DMA_InitStruct);
+	DMA_EnableAutoDisableRequest(HW_DMA_CH0, true); // auto disable
+	DMA_DisableRequest(HW_DMA_CH0);
 	// UART_ITDMAConfig(HW_UART0, kUART_DMA_Tx, true); // DMA req on finished
 
-	for (uint32_t i = 0; i < OV7725_H*(OV7725_W/8); i++)
-		imgRaw[i] = i;
+	// for (uint32_t i = 0; i < OV7725_H*(OV7725_W/8); i++)
+	// 	imgRaw[i] = i;
 
 	// st7735r
 	st7735r_Init(SPI0_SCK_PC05_SOUT_PC06_SIN_PC07);
 	st7735r_FillColor(BLACK);
 	
-	st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,imgRaw,OV7725_H*(OV7725_W/8));
+	// st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,imgRaw,OV7725_H*(OV7725_W/8));
 }
 #else
 void INIT(void) {
@@ -145,6 +160,31 @@ void INIT(void) {
 }
 #endif // MAIN_DEBUG
 
+static void Button_Handler(uint32_t array) {
+	GPIO_ITDMAConfig(HW_GPIOA, 4, kGPIO_IT_FallingEdge, false);
+	GPIO_ITDMAConfig(HW_GPIOA, 5, kGPIO_IT_FallingEdge, false);
+	GPIO_ITDMAConfig(HW_GPIOA, 6, kGPIO_IT_FallingEdge, false);
+	// GPIO_ITDMAConfig(HW_GPIOA, 7, kGPIO_IT_FallingEdge, false);
+
+	if ((array>>4)&1U) {
+		st7735r_FillColor(BLACK);
+		LED3 = !LED3;
+	}
+	else if ((array>>5)&1U) {
+		st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,printBuffer,OV7725_H*(OV7725_W/8));
+		LED4 = !LED4;
+	}
+	else if ((array>>6)&1U) {
+		DMA_SetSourceAddress(HW_DMA_CH0, (uint32_t)imgRaw);
+		DMA_EnableRequest(HW_DMA_CH0);
+	}
+
+	GPIO_ITDMAConfig(HW_GPIOA, 4, kGPIO_IT_FallingEdge, true);
+	GPIO_ITDMAConfig(HW_GPIOA, 5, kGPIO_IT_FallingEdge, true);
+	GPIO_ITDMAConfig(HW_GPIOA, 6, kGPIO_IT_FallingEdge, true);
+	// GPIO_ITDMAConfig(HW_GPIOA, 7, kGPIO_IT_FallingEdge, true);
+}
+
 uint8_t ov7725_Init(uint32_t I2C_MAP) {
 	uint32_t instance = I2C_QuickInit(I2C_MAP, 100*1000);
 	uint8_t err = ov7725_probe(instance);
@@ -158,15 +198,19 @@ uint8_t ov7725_Init(uint32_t I2C_MAP) {
 
 	// interrupt & DMA config
 	GPIO_CallbackInstall(OV7725_CTRL_PORT, ov7725_ISR);
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_IT_FallingEdge, false);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_DMA_RisingEdge, true);
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, false);
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_DMA_RisingEdge, false);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, false);
 
 	//data pin init
 	for (uint8_t i = 0; i < 8; i++) {
 		GPIO_QuickInit(OV7725_DATA_PORT,
 			OV7725_DATA_PIN_OFFSET+i, kGPIO_Mode_IFT);
 	}
+
+	// init pointers to buffers
+	imgRaw = imgBuffer1;
+	imgBuffer = imgBuffer2;
 
 	// DMA for data transmit
 	DMA_InitTypeDef DMA_InitStruct;
@@ -183,25 +227,53 @@ uint8_t ov7725_Init(uint32_t I2C_MAP) {
 	DMA_InitStruct.sDataWidth = kDMA_DataWidthBit_8;
 	DMA_InitStruct.sMod = kDMA_ModuloDisable;
 
-	DMA_InitStruct.dAddr = (uint32_t)imgRaw;
+	DMA_InitStruct.dAddr = (uint32_t)imgBuffer;
 	DMA_InitStruct.dAddrOffset = 1;
 	DMA_InitStruct.dLastAddrAdj = 0;
 	DMA_InitStruct.dDataWidth = kDMA_DataWidthBit_8;
 	DMA_InitStruct.dMod = kDMA_ModuloDisable;
 
 	DMA_Init(&DMA_InitStruct);
+	DMA_EnableAutoDisableRequest(HW_DMA_CH1, true);
+	DMA_DisableRequest(HW_DMA_CH1);
+
 	return 0;
 }
 
+void ov7725_ISR(uint32_t array) {
+	static uint8_t rowCnt = 0;
 
-void extractImage(void) {
-	for (uint32_t i = 0; i < OV7725_H*(OV7725_W/8); i++) {
-		uint32_t val = i << 3;
-		for (uint8_t j = 0; j < 8; j++) {
-			img[val+j] = ((imgRaw[i] >> (7-j)) & 0x01) + '0';
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, false);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, false);
+
+	if ((array>>OV7725_VSYNC_PIN)&1U) {			// VSYNC
+		// printf("\r\rV");
+		rowCnt = 0;
+		uint8_t* tmp = imgRaw;
+		imgRaw = imgBuffer;
+		imgBuffer = tmp;
+		DMA_SetDestAddress(HW_DMA_CH1, (uint32_t)imgBuffer);
+	}
+	else if ((array>>OV7725_HREF_PIN)&1U) {		// HREF
+		// printf("H");
+		if (rowCnt < OV7725_H) {
+			rowCnt++;
+			DMA_EnableRequest(HW_DMA_CH1);
 		}
 	}
+
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, true);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, true);
 }
+
+// void extractImage(void) {
+// 	for (uint32_t i = 0; i < OV7725_H*(OV7725_W/8); i++) {
+// 		uint32_t val = i << 3;
+// 		for (uint8_t j = 0; j < 8; j++) {
+// 			img[val+j] = ((imgRaw[i] >> (7-j)) & 0x01) + '0';
+// 		}
+// 	}
+// }
 
 int16_t getEncoder(uint32_t instance) {
 	int16_t v = 0;

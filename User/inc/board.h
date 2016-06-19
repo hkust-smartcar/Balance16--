@@ -9,6 +9,8 @@
 // GPIO
 #define LED1 PDout(4)
 #define LED2 PDout(5)
+#define LED3 PDout(8)
+#define LED4 PDout(9)
 
 // Encoder & Motor
 #define ENC_L HW_FTM2
@@ -60,10 +62,20 @@
 
 // signal description
 #define OV7725_CTRL_PORT HW_GPIOB
-#define OV7725_PCLK_PIN 2
-#define OV7725_VSYNC_PIN 7
-#define OV7725_HREF_PIN 10
+#define OV7725_PCLK_PIN 9
+#define OV7725_VSYNC_PIN 10
+#define OV7725_HREF_PIN 11
 #define OV7725_DATA_PORT HW_GPIOB
-#define OV7725_DATA_PIN_OFFSET 16
+#define OV7725_DATA_PIN_OFFSET 0
+
+// st7735r signal description
+#define ST7735R_DC_PORT HW_GPIOC
+#define ST7735R_DC_PIN 2
+#define ST7735R_CS_PORT HW_GPIOC
+#define ST7735R_CS_PIN 4
+#define ST7735R_SPI HW_SPI0
+#define ST7735R_SPI_CS HW_SPI_CS0
+#define ST7735R_RST_PORT HW_GPIOC
+#define ST7735R_RST_PIN 3
 
 #endif // _USER_BOARD_H_

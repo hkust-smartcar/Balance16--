@@ -8,19 +8,11 @@
 #include "gpio.h"
 #include "spi.h"
 #include "font.h"
+#include "board.h"
 
 #include <stdio.h>
 #include <stdarg.h>
 
-// st7735r signal description
-#define ST7735R_DC_PORT HW_GPIOC
-#define ST7735R_DC_PIN 2
-#define ST7735R_CS_PORT HW_GPIOC
-#define ST7735R_CS_PIN 4
-#define ST7735R_SPI HW_SPI0
-#define ST7735R_SPI_CS HW_SPI_CS0
-#define ST7735R_RST_PORT HW_GPIOC
-#define ST7735R_RST_PIN 3
 
 // Color
 #define	BGR888_MODE		1

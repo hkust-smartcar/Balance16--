@@ -249,6 +249,10 @@ int ov7725_probe(uint8_t i2c_instance)
                 OV7725_TRACE("device[addr:0x%X]regiser[addr:0x%X] write error!\r\n",
                     OV7725_ADDR, reg_tbl[j].addr);
             }
+            else {
+                OV7725_TRACE("device[addr:0x%X]register[addr:0x%X] write success\r",
+                    OV7725_ADDR, reg_tbl[j].addr);
+            }
         }
 
         h_ov7725.addr = OV7725_ADDR;
