@@ -31,13 +31,13 @@ int main(void) {
 	controlInit();
 	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
 #else
-	PIT_ITDMAConfig(HW_PIT_CH1, kPIT_IT_TOF, true);
+	// PIT_ITDMAConfig(HW_PIT_CH1, kPIT_IT_TOF, true);
 #endif // MAIN_DEBUG
 
 	// enable interrupt & DMA for ov7725
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_DMA_RisingEdge, true);
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, true);
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, true);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, true);
+	// GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, true);
 
 	while (1) {
 		

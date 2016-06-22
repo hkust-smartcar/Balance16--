@@ -29,7 +29,8 @@ void printMPU(uint32_t id);
 uint8_t ov7725_Init(uint32_t I2C_MAP);
 // void extractImage(void);
 void ov7725_ISR(uint32_t array);
+void ov7725_DMA_Complete_ISR(void);
 
-static void Button_Handler(uint32_t array);
+// static void Button_Handler(uint32_t array);
 
 #endif // _USER_UTIL_H_

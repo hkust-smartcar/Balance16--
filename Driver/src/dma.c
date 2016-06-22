@@ -454,19 +454,19 @@ static void DMA_IRQHandler(uint32_t instance)
 /**
  * \brief DMA0中断函数入口，用户无需使用
  */
-void DMA0_IRQHandler(void) {DMA_IRQHandler(0);}
+void DMA0_DMA16_IRQHandler(void) {DMA_IRQHandler(0);}
 /**
  * \brief DMA1中断函数入口，用户无需使用
  */
-void DMA1_IRQHandler(void) {DMA_IRQHandler(1);}
+void DMA1_DMA17_IRQHandler(void) {DMA_IRQHandler(1);}
 /**
  * \brief DMA2中断函数入口，用户无需使用
  */
-void DMA2_IRQHandler(void) {DMA_IRQHandler(2);}
+void DMA2_DMA18_IRQHandler(void) {DMA_IRQHandler(2);}
 /**
  * \brief DMA3中断函数入口，用户无需使用
  */
-void DMA3_IRQHandler(void) {DMA_IRQHandler(3);}
+void DMA3_DMA19_IRQHandler(void) {DMA_IRQHandler(3);}
 /**
  * \brief DMA4中断函数入口，用户无需使用
  */

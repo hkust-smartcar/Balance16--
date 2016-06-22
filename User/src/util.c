@@ -21,16 +21,6 @@ void INIT(void) {
 	GPIO_WriteBit(HW_GPIOD, 8, 1);
 	GPIO_WriteBit(HW_GPIOD, 9, 1);
 
-	GPIO_QuickInit(HW_GPIOA, 4, kGPIO_Mode_IPU);
-	GPIO_QuickInit(HW_GPIOA, 5, kGPIO_Mode_IPU);
-	GPIO_QuickInit(HW_GPIOA, 6, kGPIO_Mode_IPU);
-	// GPIO_QuickInit(HW_GPIOA, 7, kGPIO_Mode_IPU);
-	// GPIO_CallbackInstall(HW_GPIOA, Button_Handler);
-	// GPIO_ITDMAConfig(HW_GPIOA, 4, kGPIO_IT_FallingEdge, true);
-	// GPIO_ITDMAConfig(HW_GPIOA, 5, kGPIO_IT_FallingEdge, true);
-	// GPIO_ITDMAConfig(HW_GPIOA, 6, kGPIO_IT_FallingEdge, true);
-	// GPIO_ITDMAConfig(HW_GPIOA, 7, kGPIO_IT_FallingEdge, true);
-
 	//PIT
 	PIT_InitTypeDef PIT_InitStruct;
 	PIT_InitStruct.chl = HW_PIT_CH1;
@@ -57,32 +47,35 @@ void INIT(void) {
 	printFlag = 0;
 
 	// OV7725
+	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_2);
+	NVIC_SetPriority(DMA0_DMA16_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_1, 1, 1));
+	NVIC_SetPriority(PORTB_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_2, 2, 2));
 	ov7725_Init(I2C1_SCL_PC10_SDA_PC11);
 
-	// DMA for img data
-	DMA_InitTypeDef DMA_InitStruct;
+	// // DMA for img data
+	// DMA_InitTypeDef DMA_InitStruct;
 
-	DMA_InitStruct.chl = HW_DMA_CH0;
-	DMA_InitStruct.chlTriggerSource = MUX0_DMAREQ; // always enable
-	DMA_InitStruct.minorLoopByteCnt = (int32_t)OV7725_H*(OV7725_W/8);
-	DMA_InitStruct.majorLoopCnt = 1;
-	DMA_InitStruct.triggerSourceMode = kDMA_TriggerSource_Normal;
+	// DMA_InitStruct.chl = HW_DMA_CH0;
+	// DMA_InitStruct.chlTriggerSource = MUX0_DMAREQ; // always enable
+	// DMA_InitStruct.minorLoopByteCnt = (int32_t)OV7725_H*(OV7725_W/8);
+	// DMA_InitStruct.majorLoopCnt = 1;
+	// DMA_InitStruct.triggerSourceMode = kDMA_TriggerSource_Normal;
 
-	DMA_InitStruct.sAddr = (uint32_t)imgRaw;
-	DMA_InitStruct.sAddrOffset = 1;
-	DMA_InitStruct.sLastAddrAdj = (int32_t)(-OV7725_H*(OV7725_W/8)); // loop back
-	DMA_InitStruct.sDataWidth = kDMA_DataWidthBit_8;
-	DMA_InitStruct.sMod = kDMA_ModuloDisable;
+	// DMA_InitStruct.sAddr = (uint32_t)imgRaw;
+	// DMA_InitStruct.sAddrOffset = 1;
+	// DMA_InitStruct.sLastAddrAdj = (int32_t)(-OV7725_H*(OV7725_W/8)); // loop back
+	// DMA_InitStruct.sDataWidth = kDMA_DataWidthBit_8;
+	// DMA_InitStruct.sMod = kDMA_ModuloDisable;
 
-	DMA_InitStruct.dAddr = (uint32_t)printBuffer;
-	DMA_InitStruct.dAddrOffset = 1;
-	DMA_InitStruct.dLastAddrAdj = (int32_t)(-OV7725_H*(OV7725_W/8)); // loop back
-	DMA_InitStruct.dDataWidth = kDMA_DataWidthBit_8;
-	DMA_InitStruct.dMod = kDMA_ModuloDisable;
+	// DMA_InitStruct.dAddr = (uint32_t)printBuffer;
+	// DMA_InitStruct.dAddrOffset = 1;
+	// DMA_InitStruct.dLastAddrAdj = (int32_t)(-OV7725_H*(OV7725_W/8)); // loop back
+	// DMA_InitStruct.dDataWidth = kDMA_DataWidthBit_8;
+	// DMA_InitStruct.dMod = kDMA_ModuloDisable;
 
-	DMA_Init(&DMA_InitStruct);
-	DMA_EnableAutoDisableRequest(HW_DMA_CH0, true); // auto disable
-	DMA_DisableRequest(HW_DMA_CH0);
+	// DMA_Init(&DMA_InitStruct);
+	// DMA_EnableAutoDisableRequest(HW_DMA_CH0, true); // auto disable
+	// DMA_DisableRequest(HW_DMA_CH0);
 	// UART_ITDMAConfig(HW_UART0, kUART_DMA_Tx, true); // DMA req on finished
 
 	// for (uint32_t i = 0; i < OV7725_H*(OV7725_W/8); i++)
@@ -160,39 +153,6 @@ void INIT(void) {
 }
 #endif // MAIN_DEBUG
 
-static void Button_Handler(uint32_t array) {
-	GPIO_ITDMAConfig(HW_GPIOA, 4, kGPIO_IT_FallingEdge, false);
-	GPIO_ITDMAConfig(HW_GPIOA, 5, kGPIO_IT_FallingEdge, false);
-	GPIO_ITDMAConfig(HW_GPIOA, 6, kGPIO_IT_FallingEdge, false);
-	// GPIO_ITDMAConfig(HW_GPIOA, 7, kGPIO_IT_FallingEdge, false);
-
-	if ((array>>4)&1U) {
-		st7735r_FillColor(BLACK);
-		LED3 = !LED3;
-	}
-	else if ((array>>5)&1U) {
-		GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, false);
-		GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, false);
-		ov7725BufferState = OV7725_BUFFER_LOCKED;
-		ov7725TransferState = OV7725_PENDING;
-		st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,imgRaw,OV7725_H*(OV7725_W/8));
-		LED4 = !LED4;
-		ov7725BufferState = OV7725_BUFFER_UNLOCKED;
-		GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, true);
-		GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, true);
-	}
-	// else if ((array>>6)&1U) {
-	// 	// ov7725BufferState = OV7725_BUFFER_LOCKED;
-	// 	DMA_SetSourceAddress(HW_DMA_CH0, (uint32_t)imgRaw);
-	// 	DMA_EnableRequest(HW_DMA_CH0);
-	// }
-
-	GPIO_ITDMAConfig(HW_GPIOA, 4, kGPIO_IT_FallingEdge, true);
-	GPIO_ITDMAConfig(HW_GPIOA, 5, kGPIO_IT_FallingEdge, true);
-	GPIO_ITDMAConfig(HW_GPIOA, 6, kGPIO_IT_FallingEdge, true);
-	// GPIO_ITDMAConfig(HW_GPIOA, 7, kGPIO_IT_FallingEdge, true);
-}
-
 uint8_t ov7725_Init(uint32_t I2C_MAP) {
 	// sccb bus init
 	uint32_t instance = I2C_QuickInit(I2C_MAP, 100*1000);
@@ -202,20 +162,18 @@ uint8_t ov7725_Init(uint32_t I2C_MAP) {
 	// set image size
 	ov7725_set_image_size(H_80_W_60);
 
-	// buffer state and transfer state init
-	ov7725BufferState = OV7725_BUFFER_UNLOCKED;
-	ov7725TransferState = OV7725_PENDING;
-
 	// ctrl pin init
-	GPIO_QuickInit(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_Mode_IFT);
-	GPIO_QuickInit(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_Mode_IFT);
-	GPIO_QuickInit(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_Mode_IFT);
+	GPIO_QuickInit(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_Mode_IPD);
+	GPIO_QuickInit(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_Mode_IPD);
+	PORT_PinPassiveFilterConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, true);
+	PORT_PinPassiveFilterConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, true);
+	// GPIO_QuickInit(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_Mode_IPD);
 
 	// interrupt & DMA config
 	GPIO_CallbackInstall(OV7725_CTRL_PORT, ov7725_ISR);
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_DMA_RisingEdge, true);
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, false);
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, false);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_DMA_RisingEdge, false);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, false);
+	// GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_RisingEdge, false);
 
 	//data pin init
 	for (uint8_t i = 0; i < 8; i++) {
@@ -233,7 +191,7 @@ uint8_t ov7725_Init(uint32_t I2C_MAP) {
 	DMA_InitStruct.chl = HW_DMA_CH1;
 	DMA_InitStruct.chlTriggerSource = PORTB_DMAREQ; // OV7725_CTRL_PORT DMA request
 	DMA_InitStruct.minorLoopByteCnt = 1;
-	DMA_InitStruct.majorLoopCnt = (int32_t)OV7725_W/8;
+	DMA_InitStruct.majorLoopCnt = (int32_t)(OV7725_H*OV7725_W/8);
 	DMA_InitStruct.triggerSourceMode = kDMA_TriggerSource_Normal;
 
 	DMA_InitStruct.sAddr = (uint32_t)&PTB->PDIR + OV7725_DATA_PIN_OFFSET/8; // PDIR of OV7725_CTRL_PORT
@@ -252,151 +210,30 @@ uint8_t ov7725_Init(uint32_t I2C_MAP) {
 	DMA_EnableAutoDisableRequest(HW_DMA_CH1, true);
 	DMA_DisableRequest(HW_DMA_CH1);
 
+	DMA_CallbackInstall(HW_DMA_CH1, ov7725_DMA_Complete_ISR);
+	DMA_ITConfig(HW_DMA_CH1, kDMA_IT_Major, true);
+
 	return 0;
 }
 
 void ov7725_ISR(uint32_t array) {
-	static uint8_t rowCnt = 0;
+	DMA_EnableRequest(HW_DMA_CH1);
 
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, false);
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, false);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, false);
 
-	// if ((array>>OV7725_VSYNC_PIN)&1U) {			// VSYNC
-	// 	// printf("\r\rV");
-	// 	rowCnt = 0;
-	// 	uint8_t* tmp = imgRaw;
-	// 	imgRaw = imgBuffer;
-	// 	imgBuffer = tmp;
-	// 	DMA_SetDestAddress(HW_DMA_CH1, (uint32_t)imgBuffer);
-	// }
-	// else if ((array>>OV7725_HREF_PIN)&1U) {		// HREF
-	// 	// printf("H");
-	// 	if (rowCnt < OV7725_H) {
-	// 		rowCnt++;
-	// 		DMA_EnableRequest(HW_DMA_CH1);
-	// 	}
-	// }
+	GPIO_ToggleBit(HW_GPIOD, 8);
 
-	// switch (ov7725TransferState) {
-	// 	case OV7725_PENDING:
-	// 	switch (ov7725BufferState) {
-	// 		case OV7725_BUFFER_LOCKED:
-	// 		// do nothing
-	// 		break; // OV7725_BUFFER_LOCKED
+}
 
-	// 		case OV7725_BUFFER_UNLOCKED:
-	// 		if ((array>>OV7725_VSYNC_PIN)&1U) {
-	// 			// update state
-	// 			ov7725TransferState = OV7725_IN_PROCESS;
-
-	// 			// clear rowCnt
-	// 			rowCnt = 0;
-
-	// 			// // exchange back and front buffer
-	// 			// uint8_t* tmp = imgRaw;
-	// 			// imgRaw = imgBuffer;
-	// 			// imgBuffer = tmp;
-
-	// 			// set DMA dest addr to new buffer
-	// 			DMA_SetDestAddress(HW_DMA_CH1, (uint32_t)imgBuffer);
-	// 		}
-	// 		else if ((array>>OV7725_HREF_PIN)&1U) {
-	// 			// do nothing
-	// 		}
-	// 		break; //OV7725_BUFFER_UNLOCKED
-
-	// 		default:
-	// 		;
-	// 	}
-	// 	break; // OV7725_PENDING
-
-	// 	case OV7725_IN_PROCESS:
-	// 	// switch (ov7725BufferState) {
-	// 	// 	case OV7725_BUFFER_LOCKED:
-	// 	// 	if ((array>>OV7725_VSYNC_PIN)&1U) {
-				
-	// 	// 	}
-	// 	// 	else if ((array>>OV7725_HREF_PIN)&1U) {
-				
-	// 	// 	}
-	// 	// 	break; // OV7725_BUFFER_LOCKED
-
-	// 	// 	case OV7725_BUFFER_UNLOCKED:
-	// 	// 	if ((array>>OV7725_VSYNC_PIN)&1U) {
-				
-	// 	// 	}
-	// 	// 	else if ((array>>OV7725_HREF_PIN)&1U) {
-				
-	// 	// 	}
-	// 	// 	break; //OV7725_BUFFER_UNLOCKED
-
-	// 	// 	default:
-	// 	// 	;
-	// 	// }
-	// 	if ((array>>OV7725_VSYNC_PIN)&1U) {
-	// 		// do nothing
-	// 	}
-	// 	else if ((array>>OV7725_HREF_PIN)&1U) {
-	// 		// increase rowCnt and start DMA
-	// 		rowCnt++;
-	// 		DMA_EnableRequest(HW_DMA_CH1);
-
-	// 		// finished?
-	// 		if (rowCnt == OV7725_H) {
-	// 			// update state
-	// 			ov7725TransferState = OV7725_PENDING;
-
-	// 			st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,imgRaw,OV7725_H*(OV7725_W/8));
-	// 		}
-	// 	}
-	// 	break; // OV7725_IN_PROCESS
-
-	// 	default:
-	// 	;
-	// }
-	switch (ov7725TransferState) {
-		case OV7725_PENDING:
-			if ((array>>OV7725_VSYNC_PIN)&1U) {
-				// update state
-				ov7725TransferState = OV7725_IN_PROCESS;
-
-				// clear rowCnt
-				rowCnt = 0;
-
-				// set DMA dest addr to new buffer
-				DMA_SetDestAddress(HW_DMA_CH1, (uint32_t)imgBuffer);
-			}
-			else if ((array>>OV7725_HREF_PIN)&1U) {
-				// do nothing
-			}
-		break; // OV7725_PENDING
-
-		case OV7725_IN_PROCESS:
-		if ((array>>OV7725_VSYNC_PIN)&1U) {
-			// do nothing
-		}
-		else if ((array>>OV7725_HREF_PIN)&1U) {
-			// increase rowCnt and start DMA
-			rowCnt++;
-			DMA_EnableRequest(HW_DMA_CH1);
-
-			// finished?
-			if (rowCnt == OV7725_H) {
-				// update state
-				ov7725TransferState = OV7725_PENDING;
-				
-				st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,imgBuffer,OV7725_H*(OV7725_W/8));
-			}
-		}
-		break; // OV7725_IN_PROCESS
-
-		default:
-		;
-	}
+void ov7725_DMA_Complete_ISR(void) {
+	DMA_DisableRequest(HW_DMA_CH1);
+	st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,imgBuffer,OV7725_H*(OV7725_W/8));
+	GPIO_ToggleBit(HW_GPIOD, 9);
+	DMA_SetDestAddress(HW_DMA_CH1, (uint32_t)imgBuffer);
+	DMA_SetMajorLoopCounter(HW_DMA_CH1, (int32_t)(OV7725_H*OV7725_W/8));
 
 
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_FallingEdge, true);
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_FallingEdge, true);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, true);
 }
 
 // void extractImage(void) {

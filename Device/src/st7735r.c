@@ -14,7 +14,7 @@ void st7735r_Init(uint32_t instance) {
 	PORT_PinMuxConfig(ST7735R_CS_PORT, ST7735R_CS_PIN, kPinAlt2);
 
 	// SPI init
-	SPI_QuickInit(instance, kSPI_CPOL1_CPHA1, 8*1000*1000);
+	SPI_QuickInit(instance, kSPI_CPOL1_CPHA1, 15*1000*1000);
 
 	// reset st7735r
 	st7735r_Reset();
@@ -126,7 +126,7 @@ void st7735r_PlotImg(uint8_t xs_in, uint8_t xe_in, uint8_t ys_in, uint8_t ye_in,
 
 	for (uint32_t i = 0; i < len; i++) {
 		for (uint8_t j = 0; j < 8; j++) {
-			if ((data[i]>>(7-j))&1u) {
+			if (!((data[i]>>(7-j))&1u)) {
 				st7735r_WriteData(color_t >> 8);
 				st7735r_WriteData(color_t);
 			}
