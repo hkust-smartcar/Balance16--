@@ -11,6 +11,9 @@
 
 #if ( MAIN_DEBUG == 1 ) // new feature testing
 void INIT(void) {
+	// delay init
+	DelayInit();
+
 	// GPIO
 	GPIO_QuickInit(HW_GPIOD, 4, kGPIO_Mode_OPP);
 	GPIO_QuickInit(HW_GPIOD, 5, kGPIO_Mode_OPP);
@@ -47,9 +50,6 @@ void INIT(void) {
 	printFlag = 0;
 
 	// OV7725
-	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_2);
-	NVIC_SetPriority(DMA0_DMA16_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_1, 1, 1));
-	NVIC_SetPriority(PORTB_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_2, 2, 2));
 	ov7725_Init(I2C1_SCL_PC10_SDA_PC11);
 
 	// // DMA for img data
@@ -154,6 +154,11 @@ void INIT(void) {
 #endif // MAIN_DEBUG
 
 uint8_t ov7725_Init(uint32_t I2C_MAP) {
+	// set DMA channel interrupt to higher priority
+	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_2);
+	NVIC_SetPriority(DMA0_DMA16_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_1, 1, 1));
+	NVIC_SetPriority(PORTB_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_2, 2, 2));
+
 	// sccb bus init
 	uint32_t instance = I2C_QuickInit(I2C_MAP, 100*1000);
 	uint8_t err = ov7725_probe(instance);
@@ -167,15 +172,13 @@ uint8_t ov7725_Init(uint32_t I2C_MAP) {
 	GPIO_QuickInit(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_Mode_IPD);
 	PORT_PinPassiveFilterConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, true);
 	PORT_PinPassiveFilterConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, true);
-	// GPIO_QuickInit(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_Mode_IPD);
 
 	// interrupt & DMA config
 	GPIO_CallbackInstall(OV7725_CTRL_PORT, ov7725_ISR);
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_DMA_RisingEdge, false);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_DMA_FallingEdge, false);
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, false);
-	// GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_HREF_PIN, kGPIO_IT_RisingEdge, false);
 
-	//data pin init
+	// data pin init
 	for (uint8_t i = 0; i < 8; i++) {
 		GPIO_QuickInit(OV7725_DATA_PORT,
 			OV7725_DATA_PIN_OFFSET+i, kGPIO_Mode_IFT);
@@ -189,7 +192,7 @@ uint8_t ov7725_Init(uint32_t I2C_MAP) {
 	DMA_InitTypeDef DMA_InitStruct;
 
 	DMA_InitStruct.chl = HW_DMA_CH1;
-	DMA_InitStruct.chlTriggerSource = PORTB_DMAREQ; // OV7725_CTRL_PORT DMA request
+	DMA_InitStruct.chlTriggerSource = OV7725_DMAREQ_SRC;
 	DMA_InitStruct.minorLoopByteCnt = 1;
 	DMA_InitStruct.majorLoopCnt = (int32_t)(OV7725_H*OV7725_W/8);
 	DMA_InitStruct.triggerSourceMode = kDMA_TriggerSource_Normal;
@@ -202,7 +205,7 @@ uint8_t ov7725_Init(uint32_t I2C_MAP) {
 
 	DMA_InitStruct.dAddr = (uint32_t)imgBuffer;
 	DMA_InitStruct.dAddrOffset = 1;
-	DMA_InitStruct.dLastAddrAdj = 0;
+	DMA_InitStruct.dLastAddrAdj = -(int32_t)(OV7725_H*OV7725_W/8);// 0;
 	DMA_InitStruct.dDataWidth = kDMA_DataWidthBit_8;
 	DMA_InitStruct.dMod = kDMA_ModuloDisable;
 
@@ -217,8 +220,9 @@ uint8_t ov7725_Init(uint32_t I2C_MAP) {
 }
 
 void ov7725_ISR(uint32_t array) {
+	// start transfer
 	DMA_EnableRequest(HW_DMA_CH1);
-
+	// disable intterrupt
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, false);
 
 	GPIO_ToggleBit(HW_GPIOD, 8);
@@ -226,13 +230,13 @@ void ov7725_ISR(uint32_t array) {
 }
 
 void ov7725_DMA_Complete_ISR(void) {
+	// disable transfer
 	DMA_DisableRequest(HW_DMA_CH1);
+
 	st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,imgBuffer,OV7725_H*(OV7725_W/8));
 	GPIO_ToggleBit(HW_GPIOD, 9);
-	DMA_SetDestAddress(HW_DMA_CH1, (uint32_t)imgBuffer);
-	DMA_SetMajorLoopCounter(HW_DMA_CH1, (int32_t)(OV7725_H*OV7725_W/8));
 
-
+	// enable port interrupt for next transfer
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, true);
 }
 

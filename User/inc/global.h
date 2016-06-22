@@ -52,7 +52,4 @@ EXT uint8_t imgBuffer2[OV7725_H*(OV7725_W/8)];
 EXT uint8_t printBuffer[OV7725_H*(OV7725_W/8)];
 EXT uint8_t img[OV7725_H*OV7725_W];
 
-EXT OV7725_BUFFER_STATE ov7725BufferState;
-EXT OV7725_TRANSFER_STATE ov7725TransferState;
-
 #endif // _USER_GLOBAL_H_

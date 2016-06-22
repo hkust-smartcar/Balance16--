@@ -232,6 +232,7 @@ static const struct ov7725_reg reg_tbl[] =
 int ov7725_probe(uint8_t i2c_instance)
 {
     uint8_t dummy;
+
     if(!I2C_ReadSingleRegister(i2c_instance, OV7725_ADDR, OV7725_VER, &dummy))
     {
         /* found device */

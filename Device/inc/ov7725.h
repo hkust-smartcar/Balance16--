@@ -17,16 +17,6 @@ typedef enum
     H_240_W_320,
 }ov7725_size;
 
-typedef enum {
-	OV7725_BUFFER_LOCKED,
-	OV7725_BUFFER_UNLOCKED,
-} OV7725_BUFFER_STATE;
-
-typedef enum {
-	OV7725_PENDING,
-	OV7725_IN_PROCESS,
-} OV7725_TRANSFER_STATE;
-
 //!< API funtcions
 int ov7725_probe(uint8_t i2c_instance);
 int ov7725_set_image_size(ov7725_size size);

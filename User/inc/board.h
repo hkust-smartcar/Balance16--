@@ -60,13 +60,20 @@
 	#error "Invalid image size!"
 #endif // OV7725_IMG_SIZE
 
+// see stackoverflow.com/questions/1489932
+#define PASTER2(x, y) x ## y
+#define EVALUATOR2(x, y) PASTER2(x, y)
+#define PASTER3(x, y, z) x ## y ## z
+#define EVALUATOR3(x, y, z) PASTER3(x, y, z)
 // signal description
-#define OV7725_CTRL_PORT HW_GPIOB
+#define OV7725_CTRL_PORT_NAME B
+#define OV7725_CTRL_PORT EVALUATOR2(HW_GPIO,OV7725_CTRL_PORT_NAME)
 #define OV7725_PCLK_PIN 9
 #define OV7725_VSYNC_PIN 10
 #define OV7725_HREF_PIN 11
 #define OV7725_DATA_PORT HW_GPIOB
 #define OV7725_DATA_PIN_OFFSET 0
+#define OV7725_DMAREQ_SRC EVALUATOR3(PORT, OV7725_CTRL_PORT_NAME, _DMAREQ)
 
 // st7735r signal description
 #define ST7735R_DC_PORT HW_GPIOC
