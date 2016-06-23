@@ -59,12 +59,13 @@
 void st7735r_Init(uint32_t instance);
 void st7735r_FillColor(uint16_t color);
 void st7735r_PutPixel(uint8_t x, uint8_t y, uint16_t color);
-void st7735r_FillRegion(uint8_t xs, uint8_t xe, uint8_t ys, uint8_t ye, uint16_t color);
-void st7735r_PlotImg(uint8_t xs, uint8_t xe, uint8_t ys, uint8_t ye,
-	uint16_t color_t, uint16_t color_f, uint8_t* data, uint32_t len);
+void st7735r_PlotImg(uint16_t color_f, uint16_t color_t, uint8_t* data, uint32_t len);
+void st7735r_SetActiveRegion(uint8_t xs, uint8_t xe, uint8_t ys, uint8_t ye);
+void st7735r_FillRegion(uint16_t color);
 
 // st7735r internal functions
 void st7735r_SetPixelPos(uint8_t x, uint8_t y);
+void st7735r_UpdateActiveRegion(void);
 
 // st7735r control
 void st7735r_WriteCmd(uint8_t cmd);
