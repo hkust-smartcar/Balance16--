@@ -84,11 +84,8 @@ void INIT(void) {
 	// st7735r
 	st7735r_Init(SPI0_SCK_PC05_SOUT_PC06_SIN_PC07);
 	st7735r_FillColor(BLACK);
-	st7735r_SetActiveRegion(0, 127, 70, 1000);
-	st7735r_FillRegion(GREEN);
+
 	st7735r_SetActiveRegion(0, 79, 0, 59);
-	
-	// st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,imgRaw,OV7725_H*(OV7725_W/8));
 }
 #else
 void INIT(void) {
@@ -236,7 +233,6 @@ void ov7725_DMA_Complete_ISR(void) {
 	// disable transfer
 	DMA_DisableRequest(HW_DMA_CH1);
 
-	// st7735r_PlotImg(0,OV7725_W-1,0,OV7725_H-1,WHITE,BLACK,imgBuffer,OV7725_H*(OV7725_W/8));
 	st7735r_PlotImg(WHITE,BLACK,imgBuffer,OV7725_H*(OV7725_W/8));
 	GPIO_ToggleBit(HW_GPIOD, 9);
 

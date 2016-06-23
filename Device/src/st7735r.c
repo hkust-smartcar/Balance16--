@@ -3,6 +3,10 @@
 
 #include "common.h"
 #include "st7735r.h"
+#include "font.h"
+
+#include <stdio.h>
+#include <stdarg.h>
 
 static uint8_t CURR_XS = 0;
 static uint8_t CURR_XE = MAX_WIDTH-1;
@@ -28,6 +32,7 @@ void st7735r_Init(uint32_t instance) {
 	st7735r_Startup();
 }
 
+// clear the screen
 void st7735r_FillColor(uint16_t color) {
 	st7735r_WriteCmd(0x2A);		// Column addr set
 	st7735r_WriteData(0x00);
@@ -90,6 +95,7 @@ void st7735r_PlotImg(uint16_t color_f, uint16_t color_t, uint8_t* data, uint32_t
 	}
 }
 
+// fill the current active region
 void st7735r_FillRegion(uint16_t color) {
 	st7735r_WriteCmd(0x2C);		// write to RAM
 
@@ -114,6 +120,50 @@ void st7735r_SetActiveRegion(uint8_t xs, uint8_t xe, uint8_t ys, uint8_t ye) {
 	CURR_YE = ye;
 
 	st7735r_UpdateActiveRegion();
+}
+
+// (x, y) is global
+void st7735r_PutChar(uint8_t x, uint8_t y, uint8_t ch, uint16_t textColor, uint16_t bgColor) {
+	// record last active region
+	uint8_t last_xs = CURR_XS;
+	uint8_t last_xe = CURR_XE;
+	uint8_t last_ys = CURR_YS;
+	uint8_t last_ye = CURR_YE;
+
+	// set new active region
+	if (x >= CHAR_MAX_X) x = CHAR_MAX_X-1;
+	if (y >= CHAR_MAX_Y) y = CHAR_MAX_Y-1;
+	uint16_t xs = x*CHAR_WIDTH;
+	uint16_t ys = y*CHAR_HEIGHT;
+	st7735r_SetActiveRegion(xs, xs+CHAR_WIDTH-1, ys, ys+CHAR_HEIGHT-1);
+	uint32_t index = (uint32_t)ch;
+	index <<= 4;
+	st7735r_PlotImg(bgColor, textColor, (uint8_t*)&(ascii_8x16[index]), CHAR_HEIGHT);
+
+	// set active region to original
+	st7735r_SetActiveRegion(last_xs, last_xe, last_ys, last_ye);
+}
+
+// print a const str on a line
+void st7735r_PutLine(uint8_t x, uint8_t y, uint8_t* str, uint16_t textColor, uint16_t bgColor) {
+	uint8_t i = x, j = 0;
+	while (i < CHAR_MAX_X && str[j]) {
+		st7735r_PutChar(i, y, str[j], textColor, bgColor);
+		i++;
+		j++;
+	}
+}
+
+// printf like function, only one line, the rest are truncated
+void st7735r_Print(uint8_t x, uint8_t y, uint16_t textColor, uint16_t bgColor, const uint8_t* str, ...){
+	uint8_t buffer[32];
+
+	va_list arglist;
+	va_start(arglist, str);
+	vsprintf((char*)buffer, (const char*)str, arglist);
+	va_end(arglist);
+
+	st7735r_PutLine(x, y, buffer, textColor, bgColor);
 }
 
 void st7735r_UpdateActiveRegion(void) {

@@ -3,15 +3,7 @@
 
 #include "common.h"
 
-// 8x16 ASCII Font
-#define STARTING_ASCII							0x00
-#define CHECKBOX_ASCII							0x80
-#define	HIGHLIGHTED_CHECKBOX_ASCII				0x81
-#define	CHECKED_CHECKBOX_ASCII					0x82
-#define	HIGHLIGHTED_CHECKED_CHECKBOX_ASCII		0x83
-#define	BLACK_BLOCK_ASCII						0xDB
-
-static uint8_t ascii_8x16[] = {
+static const uint8_t ascii_8x16[] = {
 	/* 0 0x00 '^@' */
 	0x00, /* 00000000 */
 	0x00, /* 00000000 */

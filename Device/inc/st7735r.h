@@ -7,7 +7,7 @@
 #include "common.h"
 #include "gpio.h"
 #include "spi.h"
-#include "font.h"
+// #include "font.h"
 #include "board.h"
 
 #include <stdio.h>
@@ -45,15 +45,16 @@
 #define CHAR_WIDTH				8
 #define CHAR_HEIGHT				16
 
-#define CHAR_MAX_X_VERTICAL		16
-#define CHAR_MAX_Y_VERTICAL		10
+#define CHAR_MAX_X				16
+#define CHAR_MAX_Y				10
 
-#define CHAR_MAX_X_HORIZONTAL	20
-#define CHAR_MAX_Y_HORIZONTAL	8
-
-#define CHAR_MAX_X				20		// max between CHAR_MAX_X_VERTICAL and CHAR_MAX_X_HORIZONTAL
-#define CHAR_MAX_Y				10		// max between CHAR_MAX_Y_VERTICAL and CHAR_MAX_Y_HORIZONTAL
-
+// 8x16 ASCII Font
+#define STARTING_ASCII							0x00
+#define CHECKBOX_ASCII							0x80
+#define	HIGHLIGHTED_CHECKBOX_ASCII				0x81
+#define	CHECKED_CHECKBOX_ASCII					0x82
+#define	HIGHLIGHTED_CHECKED_CHECKBOX_ASCII		0x83
+#define	BLACK_BLOCK_ASCII						0xDB
 
 // API functions
 void st7735r_Init(uint32_t instance);
@@ -62,6 +63,10 @@ void st7735r_PutPixel(uint8_t x, uint8_t y, uint16_t color);
 void st7735r_PlotImg(uint16_t color_f, uint16_t color_t, uint8_t* data, uint32_t len);
 void st7735r_SetActiveRegion(uint8_t xs, uint8_t xe, uint8_t ys, uint8_t ye);
 void st7735r_FillRegion(uint16_t color);
+
+void st7735r_PutChar(uint8_t x, uint8_t y, uint8_t ch, uint16_t textColor, uint16_t bgColor);
+void st7735r_PutLine(uint8_t x, uint8_t y, uint8_t* str, uint16_t textColor, uint16_t bgColor);
+void st7735r_Print(uint8_t x, uint8_t y, uint16_t textColor, uint16_t bgColor, const uint8_t* str, ...);
 
 // st7735r internal functions
 void st7735r_SetPixelPos(uint8_t x, uint8_t y);
