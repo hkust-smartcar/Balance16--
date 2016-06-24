@@ -164,20 +164,8 @@ void UART_RX_ISR(uint16_t ch) {
 
 		case 't': // motor test
 		if (!motorEnable) {
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 3000);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 3000);
-			for (int32_t i = 0; i < 10000000; i++);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 3000);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 3000);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
-			for (int32_t i = 0; i < 10000000; i++);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
+			motorTest(MOTOR_L);DelayMs(500);
+			motorTest(MOTOR_R);DelayMs(500);
 		}
 		break;
 

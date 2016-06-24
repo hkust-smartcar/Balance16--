@@ -109,7 +109,7 @@ void INIT(void) {
 	PIT_InitStruct.timeInUs = 1000*1;
 	PIT_Init(&PIT_InitStruct);
 	
-	PIT_CallbackInstall(HW_PIT_CH0, PIT0_ISR);
+	// PIT_CallbackInstall(HW_PIT_CH0, PIT0_ISR);
 	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, false);
 	
 	// UART
@@ -169,7 +169,9 @@ void systemTest(void) {
 	// UART test
 	printf("UART init successfully\r");
 
-	
+	// PIT & mpu6050 & encoder test
+	PIT_CallbackInstall(HW_PIT_CH0, PIT_test);
+	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
 
 }
 
@@ -179,27 +181,18 @@ void buttonTest_ISR(uint32_t array) {
 		LED1 = !LED1;
 		if (state == -4) state++;
 		else if (state < 0) state = -4;
-		else if (state == 0) {
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 3000);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 3000);
-			for (int32_t i = 0; i < 10000000; i++);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 3000);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 3000);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
-			for (int32_t i = 0; i < 10000000; i++);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
-			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
-		}
+		else state = 0;
 	}
 	else if ((array>>BUTTON2_PIN)&1U) {		// button2
 		LED2 = !LED2;
 		if (state == -3) state++;
 		else if (state < 0) state = -4;
+		else if (state == 0) {				// motor test
+			motorTest(MOTOR_L);
+			DelayMs(500);
+			motorTest(MOTOR_R);
+			DelayMs(500);
+		}
 	}
 	else if ((array>>BUTTON3_PIN)&1U) {		// button3
 		LED3 = !LED3;
@@ -210,13 +203,47 @@ void buttonTest_ISR(uint32_t array) {
 		LED4 = !LED4;
 		if (state == -1) state++;
 		else if (state < 0) state = -4;
-		else if (state == 0) {
+		else if (state == 0 || state == 1 || state == 2) state++;
+		else if (state == 3) {				// end of test
+			PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, false);
+			PIT_CallbackInstall(HW_PIT_CH0, PIT0_ISR);
 			GPIO_CallbackInstall(BUTTON_PORT, GPIO_DUMMY);
+			st7735r_FillColor(BLACK);
+
+			// start main loop
 			controlInit();
 			PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
 		}
 	}
-	st7735r_Print(0, 0, GREEN, BLACK, "%d", state);
+	if (!((array>>BUTTON4_PIN)&1U) || state != 3) st7735r_Print(0, 9, GREEN, BLACK, "status %d", state);		// st7735r test
+}
+
+void PIT_test(void) {
+	static uint16_t TIME_CNT = 0;
+	TIME_CNT++;
+	if (TIME_CNT == 20) {
+		TIME_CNT = 0;
+	}
+	switch (TIME_CNT) {
+		case 0:		// print encoder data
+		mpu6050_read_accel(accel);
+		mpu6050_read_gyro(gyro);
+		st7735r_Print(0, 0, GREEN, BLACK, "GX%6d", gyro[GX&0x0F]);
+		st7735r_Print(0, 1, GREEN, BLACK, "GY%6d", gyro[GY&0x0F]);
+		st7735r_Print(0, 2, GREEN, BLACK, "GZ%6d", gyro[GZ&0x0F]);
+		st7735r_Print(0, 3, GREEN, BLACK, "AX%6d", accel[AX&0x0F]);
+		st7735r_Print(0, 4, GREEN, BLACK, "AY%6d", accel[AY&0x0F]);
+		st7735r_Print(0, 5, GREEN, BLACK, "AZ%6d", accel[AZ&0x0F]);
+		break;
+
+		case 10:		// print mpu data
+		st7735r_Print(0, 6, GREEN, BLACK, "L%6d", getEncoder(ENC_L));
+		st7735r_Print(0, 7, GREEN, BLACK, "R%6d", getEncoder(ENC_R));
+		break;
+
+		default:
+			;
+	}
 }
 #endif // MAIN_DEBUG
 
@@ -402,6 +429,47 @@ void printMPU(uint32_t id) {
 		printf("%d ", gyro[id & 0x0F]);
 	}
 	else printf("%d ", accel[id & 0x0F]); //accel
+}
+
+void motorTest(uint32_t id) {
+	switch (id) {
+		case MOTOR_L:
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 3000);
+		for (int32_t i = 0; i < 10000000; i++);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 3000);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
+		for (int32_t i = 0; i < 10000000; i++);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
+		break;
+
+		case MOTOR_R:
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 3000);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
+		for (int32_t i = 0; i < 10000000; i++);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 3000);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
+		for (int32_t i = 0; i < 10000000; i++);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
+		break;
+
+		default:
+			;
+	}
 }
 
 void GPIO_DUMMY(uint32_t array) {

@@ -24,6 +24,8 @@ void INIT(void);
 void systemTest(void);
 void buttonTest_ISR(uint32_t array);
 void GPIO_DUMMY(uint32_t array);		// dummy GPIO ISR
+void motorTest(uint32_t id);
+void PIT_test(void);
 
 int16_t getEncoder(uint32_t instance);
 void setMotor(uint32_t id, int32_t pwmDuty);
