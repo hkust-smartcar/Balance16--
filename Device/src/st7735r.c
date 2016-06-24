@@ -144,13 +144,18 @@ void st7735r_PutChar(uint8_t x, uint8_t y, uint8_t ch, uint16_t textColor, uint1
 	st7735r_SetActiveRegion(last_xs, last_xe, last_ys, last_ye);
 }
 
-// print a const str on a line
+// print a const str on a line starting from a point, and clear the rest of the line
 void st7735r_PutLine(uint8_t x, uint8_t y, uint8_t* str, uint16_t textColor, uint16_t bgColor) {
 	uint8_t i = x, j = 0;
-	while (i < CHAR_MAX_X && str[j]) {
-		st7735r_PutChar(i, y, str[j], textColor, bgColor);
+	while (i < CHAR_MAX_X) {
+		if (str[j]) {
+			st7735r_PutChar(i, y, str[j], textColor, bgColor);
+			j++;
+		}
+		else {
+			st7735r_PutChar(i, y, ' ', textColor, bgColor);
+		}
 		i++;
-		j++;
 	}
 }
 

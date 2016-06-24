@@ -26,18 +26,20 @@ const char CNST_NAME[CONST_CNT][20] = {
 int main(void) {
 
 	INIT();
+	systemTest();
 
 #if ( MAIN_DEBUG == 0 )
-	controlInit();
-	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
+	// controlInit();
+	// PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
 #else
 	PIT_ITDMAConfig(HW_PIT_CH1, kPIT_IT_TOF, true);
-#endif // MAIN_DEBUG
-
 	// enable interrupt & DMA for ov7725
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_DMA_FallingEdge, true);
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, true);
 
+#endif // MAIN_DEBUG
+
+	
 	while (1) {
 		
 	}
@@ -71,8 +73,8 @@ void PIT0_ISR(void) {
 
 		case 2: // send data
 		if (printFlag) {
-			printf("%.3f %.0f\r",
-				angleError, angleControlOut);
+			printf("%.3f %.0f %4d %4d\r",
+				angleError, angleControlOut, enc_data_l, enc_data_r);
 		}
 		break; //case 2
 
@@ -153,29 +155,29 @@ void UART_RX_ISR(uint16_t ch) {
 
 		case ' ': // motor disable
 		motorEnable = 0;
-		FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH0, 0);
-		FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, 0);
-		FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, 0);
-		FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH3, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
 		speed_l = speed_r = 0;
 		break; //' '
 
 		case 't': // motor test
 		if (!motorEnable) {
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH0, 3000);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, 0);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, 0);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH3, 3000);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 3000);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 3000);
 			for (int32_t i = 0; i < 10000000; i++);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH0, 0);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, 3000);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, 3000);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH3, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 3000);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 3000);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
 			for (int32_t i = 0; i < 10000000; i++);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH0, 0);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, 0);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, 0);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH3, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
 		}
 		break;
 

@@ -8,6 +8,7 @@
 #include "global.h"
 #include "util.h"
 #include "main.h"
+#include "control.h"
 
 #if ( MAIN_DEBUG == 1 ) // new feature testing
 void INIT(void) {
@@ -34,15 +35,7 @@ void INIT(void) {
 	PIT_ITDMAConfig(HW_PIT_CH1, kPIT_IT_TOF, false);
 
 	// UART
-	UART_InitTypeDef UART_InitStruct;
-	UART_InitStruct.instance = HW_UART0;
-	UART_InitStruct.baudrate = 115200;
-	UART_InitStruct.parityMode = kUART_ParityDisabled;
-	UART_InitStruct.bitPerChar = kUART_8BitsPerChar;
-	UART_Init(&UART_InitStruct);
-	
-	PORT_PinMuxConfig(HW_GPIOD, 6, kPinAlt3);
-	PORT_PinMuxConfig(HW_GPIOD, 7, kPinAlt3);
+	UART_QuickInit(UART0_RX_PD06_TX_PD07, 115200);
 	
 	UART_CallbackRxInstall(HW_UART0, UART_RX_ISR);
 	UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, true);
@@ -50,7 +43,7 @@ void INIT(void) {
 	printFlag = 0;
 
 	// OV7725
-	ov7725_Init(I2C1_SCL_PC10_SDA_PC11);
+	ov7725_Init(OV7725_I2C_INSTANCE);
 
 	// // DMA for img data
 	// DMA_InitTypeDef DMA_InitStruct;
@@ -82,18 +75,33 @@ void INIT(void) {
 	// 	imgRaw[i] = i;
 
 	// st7735r
-	st7735r_Init(SPI0_SCK_PC05_SOUT_PC06_SIN_PC07);
+	st7735r_Init(ST7735R_SPI_INSTANCE);
 	st7735r_FillColor(BLACK);
 
 	st7735r_SetActiveRegion(0, 79, 0, 59);
 }
 #else
 void INIT(void) {
-	// GPIO
-	GPIO_QuickInit(HW_GPIOE, 12, kGPIO_Mode_OPP);
-	GPIO_QuickInit(HW_GPIOE, 11, kGPIO_Mode_OPP);
-	GPIO_WriteBit(HW_GPIOE, 12, 1);
-	GPIO_WriteBit(HW_GPIOE, 11, 1);
+	// LED
+	GPIO_QuickInit(LED_PORT, LED1_PIN, kGPIO_Mode_OPP);
+	GPIO_QuickInit(LED_PORT, LED2_PIN, kGPIO_Mode_OPP);
+	GPIO_QuickInit(LED_PORT, LED3_PIN, kGPIO_Mode_OPP);
+	GPIO_QuickInit(LED_PORT, LED4_PIN, kGPIO_Mode_OPP);
+	GPIO_WriteBit(LED_PORT, LED1_PIN, 1);
+	GPIO_WriteBit(LED_PORT, LED2_PIN, 1);
+	GPIO_WriteBit(LED_PORT, LED3_PIN, 1);
+	GPIO_WriteBit(LED_PORT, LED4_PIN, 1);
+
+	// Button
+	GPIO_QuickInit(BUTTON_PORT, BUTTON1_PIN, kGPIO_Mode_IPU);
+	GPIO_QuickInit(BUTTON_PORT, BUTTON2_PIN, kGPIO_Mode_IPU);
+	GPIO_QuickInit(BUTTON_PORT, BUTTON3_PIN, kGPIO_Mode_IPU);
+	GPIO_QuickInit(BUTTON_PORT, BUTTON4_PIN, kGPIO_Mode_IPU);
+
+	GPIO_ITDMAConfig(BUTTON_PORT, BUTTON1_PIN, kGPIO_IT_FallingEdge, true);
+	GPIO_ITDMAConfig(BUTTON_PORT, BUTTON2_PIN, kGPIO_IT_FallingEdge, true);
+	GPIO_ITDMAConfig(BUTTON_PORT, BUTTON3_PIN, kGPIO_IT_FallingEdge, true);
+	GPIO_ITDMAConfig(BUTTON_PORT, BUTTON4_PIN, kGPIO_IT_FallingEdge, true);
 
 	// PIT
 	PIT_InitTypeDef PIT_InitStruct;
@@ -105,15 +113,7 @@ void INIT(void) {
 	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, false);
 	
 	// UART
-	UART_InitTypeDef UART_InitStruct;
-	UART_InitStruct.instance = HW_UART0;
-	UART_InitStruct.baudrate = 115200;
-	UART_InitStruct.parityMode = kUART_ParityDisabled;
-	UART_InitStruct.bitPerChar = kUART_8BitsPerChar;
-	UART_Init(&UART_InitStruct);
-	
-	PORT_PinMuxConfig(HW_GPIOD, 6, kPinAlt3);
-	PORT_PinMuxConfig(HW_GPIOD, 7, kPinAlt3);
+	UART_QuickInit(UART0_RX_PD06_TX_PD07, 115200);
 	
 	UART_CallbackRxInstall(HW_UART0, UART_RX_ISR);
 	UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, true);
@@ -121,27 +121,27 @@ void INIT(void) {
 	printFlag = 0;
 	
 	// FTM (PWM)
-	FTM_PWM_QuickInit(FTM3_CH0_PD00, kPWM_EdgeAligned, 10000);
-	FTM_PWM_QuickInit(FTM3_CH1_PD01, kPWM_EdgeAligned, 10000);
-	FTM_PWM_QuickInit(FTM3_CH2_PD02, kPWM_EdgeAligned, 10000);
-	FTM_PWM_QuickInit(FTM3_CH3_PD03, kPWM_EdgeAligned, 10000);
+	FTM_PWM_QuickInit(MOTOR_R_F_INSTANCE, kPWM_EdgeAligned, 10000);
+	FTM_PWM_QuickInit(MOTOR_R_B_INSTANCE, kPWM_EdgeAligned, 10000);
+	FTM_PWM_QuickInit(MOTOR_L_B_INSTANCE, kPWM_EdgeAligned, 10000);
+	FTM_PWM_QuickInit(MOTOR_L_F_INSTANCE, kPWM_EdgeAligned, 10000);
 	
-	FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH0, 0);
-	FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, 0);
-	FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, 0);
-	FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH3, 0);
+	FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
+	FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
+	FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
+	FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
 
 	motorEnable = 0;
 	
 	// FTM (Decoder)
-	FTM_QD_QuickInit(FTM1_QD_PHA_PA12_PHB_PA13,
+	FTM_QD_QuickInit(ENC_R_INSTANCE,
 		kFTM_QD_NormalPolarity, kQD_PHABEncoding);
-	FTM_QD_QuickInit(FTM2_QD_PHA_PA10_PHB_PA11,
+	FTM_QD_QuickInit(ENC_L_INSTANCE,
 		kFTM_QD_NormalPolarity, kQD_PHABEncoding);
 	
 	// I2C, MPU6050
 	DelayInit();
-	uint8_t instance = I2C_QuickInit(I2C0_SCL_PB00_SDA_PB01, 100*1000);
+	uint8_t instance = I2C_QuickInit(MPU6050_I2C_INSTANCE, 100*1000);
 	mpu6050_init((uint32_t) instance);
 	struct mpu_config mpuConfig;
 	mpuConfig.afs = AFS_4G;
@@ -150,14 +150,81 @@ void INIT(void) {
 	mpuConfig.genable_self_test = false;
 	mpuConfig.gbypass_blpf = false;
 	mpu6050_config(&mpuConfig);
+
+	// st7735r
+	st7735r_Init(ST7735R_SPI_INSTANCE);
+	st7735r_FillColor(BLACK);
+}
+
+void systemTest(void) {
+	// LED test
+	LED1 = 0;
+	LED2 = 0;
+	LED3 = 0;
+	LED4 = 0;
+
+	// Button test
+	GPIO_CallbackInstall(BUTTON_PORT, buttonTest_ISR);
+
+	// UART test
+	printf("UART init successfully\r");
+
+	
+
+}
+
+void buttonTest_ISR(uint32_t array) {
+	static int32_t state = -4;
+	if ((array>>BUTTON1_PIN)&1U) {			// button1
+		LED1 = !LED1;
+		if (state == -4) state++;
+		else if (state < 0) state = -4;
+		else if (state == 0) {
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 3000);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 3000);
+			for (int32_t i = 0; i < 10000000; i++);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 3000);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 3000);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
+			for (int32_t i = 0; i < 10000000; i++);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
+		}
+	}
+	else if ((array>>BUTTON2_PIN)&1U) {		// button2
+		LED2 = !LED2;
+		if (state == -3) state++;
+		else if (state < 0) state = -4;
+	}
+	else if ((array>>BUTTON3_PIN)&1U) {		// button3
+		LED3 = !LED3;
+		if (state == -2) state++;
+		else if (state < 0) state = -4;
+	}
+	else if ((array>>BUTTON4_PIN)&1U) {		// button4
+		LED4 = !LED4;
+		if (state == -1) state++;
+		else if (state < 0) state = -4;
+		else if (state == 0) {
+			GPIO_CallbackInstall(BUTTON_PORT, GPIO_DUMMY);
+			controlInit();
+			PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
+		}
+	}
+	st7735r_Print(0, 0, GREEN, BLACK, "%d", state);
 }
 #endif // MAIN_DEBUG
 
 uint8_t ov7725_Init(uint32_t I2C_MAP) {
 	// set DMA channel interrupt to higher priority
 	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_2);
-	NVIC_SetPriority(DMA0_DMA16_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_1, 1, 1));
-	NVIC_SetPriority(PORTB_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_2, 2, 2));
+	NVIC_SetPriority(DMA1_DMA17_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_1, 1, 1));
+	NVIC_SetPriority(OV7725_VSYNC_IRQ, NVIC_EncodePriority(NVIC_PriorityGroup_2, 2, 2));
 
 	// sccb bus init
 	uint32_t instance = I2C_QuickInit(I2C_MAP, 100*1000);
@@ -197,7 +264,7 @@ uint8_t ov7725_Init(uint32_t I2C_MAP) {
 	DMA_InitStruct.majorLoopCnt = (int32_t)(OV7725_H*OV7725_W/8);
 	DMA_InitStruct.triggerSourceMode = kDMA_TriggerSource_Normal;
 
-	DMA_InitStruct.sAddr = (uint32_t)&PTB->PDIR + OV7725_DATA_PIN_OFFSET/8; // PDIR of OV7725_CTRL_PORT
+	DMA_InitStruct.sAddr = (uint32_t)&OV7725_DATA_PT->PDIR + OV7725_DATA_PIN_OFFSET/8; // PDIR of OV7725_CTRL_PORT
 	DMA_InitStruct.sAddrOffset = 0;
 	DMA_InitStruct.sLastAddrAdj = 0;
 	DMA_InitStruct.sDataWidth = kDMA_DataWidthBit_8;
@@ -272,10 +339,10 @@ int16_t getEncoder(uint32_t instance) {
 
 void setMotor(uint32_t id, int32_t pwmDuty) {
 	if (!motorEnable) {
-		FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH0, 0);
-		FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, 0);
-		FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, 0);
-		FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH3, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0);
+		FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0);
 		return;
 	}
 
@@ -285,23 +352,23 @@ void setMotor(uint32_t id, int32_t pwmDuty) {
 	switch (id) {
 		case MOTOR_L:
 		if (pwmDuty > 0) {
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH3, (uint32_t)pwmDuty);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, 0u);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, (uint32_t)pwmDuty);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, 0u);
 		}
 		else {
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH3, 0u);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH2, (uint32_t)(-pwmDuty));
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_F, 0u);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_L_B, (uint32_t)(-pwmDuty));
 		}
 		break; // MOTOR_L
 
 		case MOTOR_R:
 		if (pwmDuty > 0) {
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH0, (uint32_t)pwmDuty);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, 0u);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, (uint32_t)pwmDuty);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, 0u);
 		}
 		else {
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH0, 0u);
-			FTM_PWM_ChangeDuty(HW_FTM3, HW_FTM_CH1, (uint32_t)(-pwmDuty));
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_F, 0u);
+			FTM_PWM_ChangeDuty(MOTOR_FTM_MODULE, MOTOR_R_B, (uint32_t)(-pwmDuty));
 		}
 		break;  // MOTOR_R
 
@@ -335,4 +402,8 @@ void printMPU(uint32_t id) {
 		printf("%d ", gyro[id & 0x0F]);
 	}
 	else printf("%d ", accel[id & 0x0F]); //accel
+}
+
+void GPIO_DUMMY(uint32_t array) {
+	return;
 }
