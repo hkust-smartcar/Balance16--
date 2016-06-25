@@ -17,6 +17,7 @@
 #include "spi.h"
 #include "st7735r.h"
 #include "ov7725.h"
+#include "flash.h"
 
 void INIT(void);
 

@@ -11,6 +11,8 @@
 #define __CH_LIB_IFLASH_H__
 
 #include <stdint.h>
+#include <string.h>
+#include "common.h"
 
 /* function return type */
 #define FLASH_OK                    0x00
@@ -20,6 +22,33 @@
 #define FLASH_TIMEOUT               0x08
 #define FLASH_NOT_ERASED            0x10
 #define FLASH_CONTENTERR            0x11
+
+// device specific information
+#if defined(FTFL)
+	#define FTF    FTFL
+	#define SECTOR_SIZE     (2048)
+	#define PROGRAM_CMD      PGM4
+  	#define PROGRAM_CMD_SIZE 4
+#elif defined(FTFE)
+	#define FTF    FTFE
+	#define SECTOR_SIZE     (4096)
+	#define PROGRAM_CMD      PGM8
+  	#define PROGRAM_CMD_SIZE 8
+#elif defined(FTFA)
+    #if (__CORTEX_M == 0)
+        #if defined(MKL28Z7)
+	        #define SECTOR_SIZE     (2048)
+        #else
+	        #define SECTOR_SIZE     (1024)
+        #endif
+    #else
+	    #define SECTOR_SIZE     (2048)
+    #endif
+
+	#define PROGRAM_CMD      PGM4
+  	#define PROGRAM_CMD_SIZE 4
+	#define FTF    FTFA
+#endif
 
 //!< API functions
 void FLASH_Init(void);

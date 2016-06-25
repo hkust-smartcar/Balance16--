@@ -14,6 +14,7 @@
 #include "common.h"
 #include "board.h"
 #include "ov7725.h"
+#include "flash.h"
 
 // angle
 EXT float theta, theta_raw, omega;
@@ -51,5 +52,8 @@ EXT uint8_t imgBuffer1[OV7725_H*(OV7725_W/8)];
 EXT uint8_t imgBuffer2[OV7725_H*(OV7725_W/8)];
 EXT uint8_t printBuffer[OV7725_H*(OV7725_W/8)];
 EXT uint8_t img[OV7725_H*OV7725_W];
+
+// flash
+EXT uint8_t buf[SECTOR_SIZE];
 
 #endif // _USER_GLOBAL_H_

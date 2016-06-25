@@ -4,7 +4,7 @@
 #ifndef _USER_BOARD_H_
 #define _USER_BOARD_H_
 
-#define MAIN_DEBUG 0
+#define MAIN_DEBUG 1
 
 // see stackoverflow.com/questions/1489932
 #define PASTER2(x, y) x ## y
@@ -120,5 +120,9 @@
 #define ST7735R_RST_PORT HW_GPIOC
 #define ST7735R_RST_PIN 3
 #define ST7735R_SPI_INSTANCE SPI0_SCK_PC05_SOUT_PC06_SIN_PC07
+
+// flash
+#define FLASH_SIZE 0x80000
+#define FLASH_DATA_ADDR 0x00070000
 
 #endif // _USER_BOARD_H_

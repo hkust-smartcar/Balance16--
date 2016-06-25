@@ -26,9 +26,10 @@ const char CNST_NAME[CONST_CNT][20] = {
 int main(void) {
 
 	INIT();
-	systemTest();
+	
 
 #if ( MAIN_DEBUG == 0 )
+	systemTest();
 	// controlInit();
 	// PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
 #else

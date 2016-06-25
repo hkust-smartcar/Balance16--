@@ -30,51 +30,43 @@
 #define NORMAL_LEVEL 0x0
 
 
-/* disable interrupt before lunch command */
-#define CCIF    (1<<7)
-#define ACCERR  (1<<5)
-#define FPVIOL  (1<<4)
-#define MGSTAT0 (1<<0)
-
-
-#if defined(FTFL)
-#define FTF    FTFL
-#define SECTOR_SIZE     (2048)
-#define PROGRAM_CMD      PGM4
-#elif defined(FTFE)
-#define FTF    FTFE
-#define SECTOR_SIZE     (4096)
-#define PROGRAM_CMD      PGM8
-#elif defined(FTFA)
-    #if (__CORTEX_M == 0)
-        #if defined(MKL28Z7)
-        #define SECTOR_SIZE     (2048)
-        #else
-        #define SECTOR_SIZE     (1024)
-        #endif
-    #else
-    #define SECTOR_SIZE     (2048)
-    #endif
-#define PROGRAM_CMD      PGM4
-#define FTF    FTFA
-#endif
-
-
 volatile uint8_t s_flash_command_run[] = {0x00, 0xB5, 0x80, 0x21, 0x01, 0x70, 0x01, 0x78, 0x09, 0x06, 0xFC, 0xD5,0x00, 0xBD};
 typedef void (*flash_run_entry_t)(volatile uint8_t *reg);
 flash_run_entry_t s_flash_run_entry;
     
-
+static inline void FlashWaitCmdExecution(void) {
+    while (!(FTFE->FSTAT & FTFE_FSTAT_CCIF_MASK));
+}
     
 static inline uint8_t FlashCmdStart(void)
-{
-    /* clear command result flags */
-    FTF->FSTAT = ACCERR | FPVIOL;
-    s_flash_run_entry = (flash_run_entry_t)((uint32_t)s_flash_command_run + 1);
-    s_flash_run_entry(&FTF->FSTAT);
-    
-    if(FTF->FSTAT & (ACCERR | FPVIOL | MGSTAT0)) return CH_ERR;
-    return CH_OK;
+{   
+    uint8_t ret = CH_OK;
+
+    /* start cmd execution */
+    FTF->FSTAT |= FTFE_FSTAT_CCIF_MASK;
+
+    /* wait for cmd execution */
+    FlashWaitCmdExecution();
+
+    if (FTFE->FSTAT & FTFE_FSTAT_MGSTAT0_MASK)          // memory controller command finished
+        ret |= FTFE_FSTAT_MGSTAT0_MASK;
+    else if (FTFE->FSTAT & FTFE_FSTAT_FPVIOL_MASK)      // flash protection violation
+    {
+        FTFE->FSTAT |= FTFE_FSTAT_FPVIOL_MASK;
+        ret |= FTFE_FSTAT_FPVIOL_MASK;
+    }
+    else if (FTFE->FSTAT & FTFE_FSTAT_ACCERR_MASK)      // flash access error
+    {
+        FTFE->FSTAT |= FTFE_FSTAT_ACCERR_MASK;
+        ret |= FTFE_FSTAT_ACCERR_MASK;
+    }
+    else if (FTFE->FSTAT & FTFE_FSTAT_RDCOLERR_MASK)    // FTFE read collision
+    {
+        FTFE->FSTAT |= FTFE_FSTAT_RDCOLERR_MASK;
+        ret |= FTFE_FSTAT_RDCOLERR_MASK;
+    }
+
+    return ret;
 }
 
  /**
@@ -89,7 +81,7 @@ uint32_t FLASH_GetSectorSize(void)
 void FLASH_Init(void)
 {
     /* clear status */
-    FTF->FSTAT = ACCERR | FPVIOL;
+    FTF->FSTAT |= FTFE_FSTAT_ACCERR_MASK | FTFE_FSTAT_FPVIOL_MASK;
 }
 
  /**
@@ -100,19 +92,16 @@ void FLASH_Init(void)
  */
 uint8_t FLASH_EraseSector(uint32_t addr)
 {
-    int ret;
-	union
-	{
-		uint32_t  word;
-		uint8_t   byte[4];
-	} dest;
-	dest.word = (uint32_t)addr;
+    uint8_t ret;
+
+    /* wait for last cmd execution */
+    FlashWaitCmdExecution();
 
     /* set cmd */
 	FTF->FCCOB0 = ERSSCR; 
-	FTF->FCCOB1 = dest.byte[2];
-	FTF->FCCOB2 = dest.byte[1];
-	FTF->FCCOB3 = dest.byte[0];
+	FTF->FCCOB1 = (uint8_t)((addr>>16)&0xFF);
+	FTF->FCCOB2 = (uint8_t)((addr>>8)&0xFF);
+	FTF->FCCOB3 = (uint8_t)(addr&0xFF);
     __disable_irq();
     ret = FlashCmdStart();
     __enable_irq();
@@ -130,62 +119,52 @@ uint8_t FLASH_EraseSector(uint32_t addr)
  */
 uint8_t FLASH_WriteSector(uint32_t addr, const uint8_t *buf, uint32_t len)
 {
-    uint16_t step, ret, i;
-	union
-	{
-		uint32_t  word;
-		uint8_t   byte[4];
-	} dest;
-	dest.word = (uint32_t)addr;
+    uint8_t ret = CH_OK;
+    uint8_t temp[PROGRAM_CMD_SIZE];        // temp data
+
+    /* wait for last cmd execution */
+    FlashWaitCmdExecution();
+
+    /* length error */
+    if (len == 0 || len > SECTOR_SIZE) return CH_ERR;
 
 	FTF->FCCOB0 = PROGRAM_CMD;
     
-    switch(PROGRAM_CMD)
-    {
-        case PGM4:
-            step = 4;
-            break;
-        case PGM8:
-            step = 8;
-            break;
-        default:
-            LIB_TRACE("FLASH: no program cmd found!\r\n");
-            step = 4;
-            break;
-    }
-    
-	for(i=0; i<len; i+=step)
+    while (ret == CH_OK && len)
 	{
         /* set address */
-		FTF->FCCOB1 = dest.byte[2];
-		FTF->FCCOB2 = dest.byte[1];
-		FTF->FCCOB3 = dest.byte[0];
+        FTF->FCCOB1 = (uint8_t)((addr>>16)&0xFF);
+        FTF->FCCOB2 = (uint8_t)((addr>>8)&0xFF);
+        FTF->FCCOB3 = (uint8_t)(addr&0xFF);
 
-		FTF->FCCOB4 = buf[3];
-		FTF->FCCOB5 = buf[2];
-		FTF->FCCOB6 = buf[1];
-		FTF->FCCOB7 = buf[0];
-        
-        if(step == 8)
-        {
-            FTF->FCCOB8 = buf[7];
-            FTF->FCCOB9 = buf[6];
-            FTF->FCCOBA = buf[5];
-            FTF->FCCOBB = buf[4];
+        memset(temp, 0xFF, PROGRAM_CMD_SIZE);
+
+        for (uint8_t i = 0; i < PROGRAM_CMD_SIZE && len; len--, i++) {
+            temp[i] = buf[i];
         }
 
-		dest.word += step; buf += step;
+		FTF->FCCOB4 = temp[3];
+		FTF->FCCOB5 = temp[2];
+		FTF->FCCOB6 = temp[1];
+		FTF->FCCOB7 = temp[0];
+        
+        if(PROGRAM_CMD_SIZE == 8)
+        {
+            FTF->FCCOB8 = temp[7];
+            FTF->FCCOB9 = temp[6];
+            FTF->FCCOBA = temp[5];
+            FTF->FCCOBB = temp[4];
+        }
+
+        buf += PROGRAM_CMD_SIZE;
+        addr += PROGRAM_CMD_SIZE;
 
         __disable_irq();
         ret = FlashCmdStart();
         __enable_irq();
         
-		if(CH_OK != ret) 
-        {
-            return CH_ERR;
-        }
     }
-    return CH_OK;
+    return ret;
 }
 
 
