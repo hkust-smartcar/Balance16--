@@ -11,8 +11,8 @@
 #define GYRO_Z_OFFSET -44
 #define GYRO_Y_OFFSET 1.1142f
 #define DELTA_T 0.005f
-#define DEADZONE_L 150.0f
-#define DEADZONE_R 150.0f
+#define DEADZONE_L 300.0f
+#define DEADZONE_R 300.0f
 #define LEFT_MOTOR_SCALE 1.00f
 
 void controlInit(void);

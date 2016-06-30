@@ -19,6 +19,7 @@ void controlInit(void) {
 	speedControlAmount = speedControlAmountOld = 0.0f;
 	speedControlOut = 0.0f;
 
+	steeringSP = 0;
 	steeringRegulateOut = 0.0f;
 
 	CTRL_CNST[STABLE_ANGLE] = -79.8f;
@@ -27,8 +28,8 @@ void controlInit(void) {
 	CTRL_CNST[ANGLE_D] = 26.0f;
 	CTRL_CNST[SPEED_I] = 0.20f;
 	CTRL_CNST[SPEED_P] = 0.50f;
-	CTRL_CNST[STR_REG_I] = 0.10f;
-	CTRL_CNST[STR_REG_P] = 0.0f;
+	CTRL_CNST[STR_REG_I] = 0.20f;
+	CTRL_CNST[STR_REG_P] = 0.30f;
 	currentIndex = -1;
 }
 
@@ -69,7 +70,7 @@ void speedControlAverage(uint16_t count) {
 }
 
 void steeringRegulate(void) {
-	steeringError = -(gyro[GZ & 0x0F]-GYRO_Z_OFFSET);	// CW when looking downwards
+	steeringError = -(gyro[GZ & 0x0F]-GYRO_Z_OFFSET)-steeringSP;	// CW when looking downwards
 	steeringErrorIntegral = steeringErrorIntegral*0.9f+steeringError;
 	steeringRegulateOut = (float)steeringErrorIntegral*CTRL_CNST[STR_REG_I]
 		+(float)steeringError*CTRL_CNST[STR_REG_P];

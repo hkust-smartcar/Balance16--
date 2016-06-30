@@ -33,7 +33,7 @@ EXT float speedControlOut, speedControlAmountAverage;
 EXT int16_t enc_data_l, enc_data_r;
 
 // steering
-EXT int16_t steeringError;
+EXT int16_t steeringError, steeringSP;
 EXT int32_t steeringErrorIntegral;
 EXT float steeringRegulateOut;
 

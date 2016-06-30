@@ -29,9 +29,10 @@ int main(void) {
 	
 
 #if ( MAIN_DEBUG == 0 )
-	systemTest();
-	// controlInit();
-	// PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
+	// systemTest();
+	controlInit();
+	PIT_CallbackInstall(HW_PIT_CH0, PIT0_ISR);
+	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
 #else
 	PIT_ITDMAConfig(HW_PIT_CH1, kPIT_IT_TOF, true);
 	// enable interrupt & DMA for ov7725
@@ -132,11 +133,17 @@ void UART_RX_ISR(uint16_t ch) {
 		break; //0x1F
 
 		case 0x1C: // left
-
+		if (steeringSP > -16000) {
+			steeringSP -= 1000;
+			printf("set steering %d\r", steeringSP);
+		}
 		break; //0x1C
 
 		case 0x1D: // right
-
+		if (steeringSP < 16000) {
+			steeringSP += 1000;
+			printf("set steering %d\r", steeringSP);
+		}
 		break; //0x1D
 		
 		case 'S': // toggle printFlag
@@ -150,6 +157,8 @@ void UART_RX_ISR(uint16_t ch) {
 		speedError = speedErrorIntegral = 0;
 		speedControlAmountOld = speedControlAmount = 0.0f;
 		speedControlOut = 0.0f;
+
+		steeringSP = 0;
 		steeringError = steeringErrorIntegral = 0;
 		steeringRegulateOut = 0.0f;
 		break; //'&'
