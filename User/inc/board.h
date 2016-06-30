@@ -4,7 +4,7 @@
 #ifndef _USER_BOARD_H_
 #define _USER_BOARD_H_
 
-#define MAIN_DEBUG 1
+#define MAIN_DEBUG 0
 
 // see stackoverflow.com/questions/1489932
 #define PASTER2(x, y) x ## y

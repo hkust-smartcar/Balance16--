@@ -8,6 +8,7 @@
 #define RAD_TO_DEG  180.0f/PI
 #define GYRO_SCALE 65.5f
 #define GYRO_X_OFFSET -60
+#define GYRO_Z_OFFSET -44
 #define GYRO_Y_OFFSET 1.1142f
 #define DELTA_T 0.005f
 #define DEADZONE_L 150.0f

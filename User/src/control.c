@@ -21,12 +21,12 @@ void controlInit(void) {
 
 	steeringRegulateOut = 0.0f;
 
-	CTRL_CNST[STABLE_ANGLE] = -55.3f;
+	CTRL_CNST[STABLE_ANGLE] = -79.8f;
 	CTRL_CNST[TG] = 0.6f;
-	CTRL_CNST[ANGLE_P] = 330.0f;
-	CTRL_CNST[ANGLE_D] = 30.0f;
-	CTRL_CNST[SPEED_I] = 0.15f;
-	CTRL_CNST[SPEED_P] = 0.30f;
+	CTRL_CNST[ANGLE_P] = 500.0f;
+	CTRL_CNST[ANGLE_D] = 26.0f;
+	CTRL_CNST[SPEED_I] = 0.20f;
+	CTRL_CNST[SPEED_P] = 0.50f;
 	CTRL_CNST[STR_REG_I] = 0.10f;
 	CTRL_CNST[STR_REG_P] = 0.0f;
 	currentIndex = -1;
@@ -35,8 +35,8 @@ void controlInit(void) {
 void updateAngle(void) {
 	mpu6050_read_accel(accel);
 	mpu6050_read_gyro(gyro);
-	theta_raw = (float)atan2((double)accel[AZ & 0x0F],
-		-(double)accel[AX & 0x0F])*RAD_TO_DEG;
+	theta_raw = (float)atan2(-(double)accel[AZ & 0x0F],
+		(double)accel[AX & 0x0F])*RAD_TO_DEG;
 	omega = -(float)gyro[GY & 0x0F]/GYRO_SCALE-GYRO_Y_OFFSET;
 	theta += (omega+(theta_raw-theta)/CTRL_CNST[TG])*DELTA_T;
 }
@@ -69,7 +69,7 @@ void speedControlAverage(uint16_t count) {
 }
 
 void steeringRegulate(void) {
-	steeringError = gyro[GX & 0x0F]-GYRO_X_OFFSET;
+	steeringError = -(gyro[GZ & 0x0F]-GYRO_Z_OFFSET);	// CW when looking downwards
 	steeringErrorIntegral = steeringErrorIntegral*0.9f+steeringError;
 	steeringRegulateOut = (float)steeringErrorIntegral*CTRL_CNST[STR_REG_I]
 		+(float)steeringError*CTRL_CNST[STR_REG_P];

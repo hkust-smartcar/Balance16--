@@ -205,6 +205,7 @@ void buttonTest_ISR(uint32_t array) {
 		else if (state < 0) state = -4;
 		else if (state == 0 || state == 1 || state == 2) state++;
 		else if (state == 3) {				// end of test
+			state++;
 			PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, false);
 			PIT_CallbackInstall(HW_PIT_CH0, PIT0_ISR);
 			GPIO_CallbackInstall(BUTTON_PORT, GPIO_DUMMY);
@@ -215,7 +216,7 @@ void buttonTest_ISR(uint32_t array) {
 			PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
 		}
 	}
-	if (!((array>>BUTTON4_PIN)&1U) || state != 3) st7735r_Print(0, 9, GREEN, BLACK, "status %d", state);		// st7735r test
+	if (!((array>>BUTTON4_PIN)&1U) || state != 4) st7735r_Print(0, 9, GREEN, BLACK, "status %d", state);		// st7735r test
 }
 
 void PIT_test(void) {
