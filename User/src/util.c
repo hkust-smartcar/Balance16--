@@ -25,6 +25,11 @@ void INIT(void) {
 	GPIO_WriteBit(HW_GPIOD, 8, 1);
 	GPIO_WriteBit(HW_GPIOD, 9, 1);
 
+	GPIO_QuickInit(HW_GPIOA, 16, kGPIO_Mode_OPP);
+	GPIO_WriteBit(HW_GPIOA, 16, 0);
+	GPIO_QuickInit(HW_GPIOA, 17, kGPIO_Mode_OPP);
+	GPIO_WriteBit(HW_GPIOA, 17, 0);
+
 	//PIT
 	PIT_InitTypeDef PIT_InitStruct;
 	PIT_InitStruct.chl = HW_PIT_CH1;
@@ -82,6 +87,9 @@ void INIT(void) {
 }
 #else
 void INIT(void) {
+	// delay init
+	DelayInit();
+
 	// LED
 	GPIO_QuickInit(LED_PORT, LED1_PIN, kGPIO_Mode_OPP);
 	GPIO_QuickInit(LED_PORT, LED2_PIN, kGPIO_Mode_OPP);
@@ -91,6 +99,10 @@ void INIT(void) {
 	GPIO_WriteBit(LED_PORT, LED2_PIN, 1);
 	GPIO_WriteBit(LED_PORT, LED3_PIN, 1);
 	GPIO_WriteBit(LED_PORT, LED4_PIN, 1);
+
+	// GPIO for testing
+	GPIO_QuickInit(HW_GPIOA, 16, kGPIO_Mode_OPP);
+	GPIO_WriteBit(HW_GPIOA, 16, 0);
 
 	// Button
 	GPIO_QuickInit(BUTTON_PORT, BUTTON1_PIN, kGPIO_Mode_IPU);
@@ -140,7 +152,6 @@ void INIT(void) {
 		kFTM_QD_NormalPolarity, kQD_PHABEncoding);
 	
 	// I2C, MPU6050
-	DelayInit();
 	uint8_t instance = I2C_QuickInit(MPU6050_I2C_INSTANCE, 100*1000);
 	mpu6050_init((uint32_t) instance);
 	struct mpu_config mpuConfig;
@@ -151,6 +162,9 @@ void INIT(void) {
 	mpuConfig.gbypass_blpf = false;
 	mpu6050_config(&mpuConfig);
 
+	// OV7725
+	ov7725_Init(OV7725_I2C_INSTANCE);
+	
 	// st7735r
 	st7735r_Init(ST7735R_SPI_INSTANCE);
 	st7735r_FillColor(BLACK);
@@ -249,9 +263,10 @@ void PIT_test(void) {
 #endif // MAIN_DEBUG
 
 uint8_t ov7725_Init(uint32_t I2C_MAP) {
-	// set DMA channel interrupt to higher priority
+	// // set DMA channel interrupt to higher priority
 	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_2);
-	NVIC_SetPriority(DMA1_DMA17_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_1, 1, 1));
+	NVIC_SetPriority(DMA1_DMA17_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_2, 2, 1));
+	NVIC_SetPriority(PIT0_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_2, 1, 1));
 	NVIC_SetPriority(OV7725_VSYNC_IRQ, NVIC_EncodePriority(NVIC_PriorityGroup_2, 2, 2));
 
 	// sccb bus init
@@ -328,7 +343,7 @@ void ov7725_DMA_Complete_ISR(void) {
 	// disable transfer
 	DMA_DisableRequest(HW_DMA_CH1);
 
-	st7735r_PlotImg(WHITE,BLACK,imgBuffer,OV7725_H*(OV7725_W/8));
+	// st7735r_PlotImg(WHITE,BLACK,imgBuffer,OV7725_H*(OV7725_W/8));
 	GPIO_ToggleBit(HW_GPIOD, 9);
 
 	// enable port interrupt for next transfer

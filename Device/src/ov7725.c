@@ -180,8 +180,8 @@ struct
 static const struct ov7725_reg reg_tbl[] =
 {
 
-    {OV7725_COM4         , 0X40},
-    {OV7725_CLKRC        , 0X00},
+    {OV7725_COM4         , 0XC1}, // 0x40
+    {OV7725_CLKRC        , 0X00}, // 0x00
     {OV7725_COM2         , 0x03},
     {OV7725_COM3         , 0xD0},
     {OV7725_COM7         , 0x40},

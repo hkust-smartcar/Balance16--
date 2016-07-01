@@ -47,7 +47,6 @@ uint8_t I2C_QuickInit(uint32_t MAP, uint32_t baudrate)
     for(i = 0; i < pq->pin_cnt; i++)
     {
         GPIO_QuickInit(pq->io, pq->pin_start + i, kGPIO_Mode_OPP);
-        GPIO_QuickInit(pq->io, pq->pin_start + i, kGPIO_Mode_OPP);
         GPIO_WriteBit(pq->io, pq->pin_start + i, 1);
         PORT_PinPullConfig(pq->io, pq->pin_start + i, kPullUp);
     }

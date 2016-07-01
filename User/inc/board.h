@@ -61,6 +61,12 @@
 #define GZ 0x12
 #define MPU6050_I2C_INSTANCE I2C0_SCL_PB00_SDA_PB01
 
+#define MPU6050_I2CX (I2C0)
+#define MPU6050_SCLPORT (HW_GPIOB)
+#define MPU6050_SCLPIN (0)
+#define MPU6050_SDAPORT (HW_GPIOB)
+#define MPU6050_SDAPIN (1)
+
 // control
 #define STABLE_ANGLE	0
 #define TG				1

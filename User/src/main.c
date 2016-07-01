@@ -33,6 +33,12 @@ int main(void) {
 	controlInit();
 	PIT_CallbackInstall(HW_PIT_CH0, PIT0_ISR);
 	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
+
+	// enable interrupt & DMA for ov7725
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_DMA_FallingEdge, true);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, true);
+
+
 #else
 	PIT_ITDMAConfig(HW_PIT_CH1, kPIT_IT_TOF, true);
 	// enable interrupt & DMA for ov7725
@@ -43,12 +49,14 @@ int main(void) {
 
 	
 	while (1) {
-		
+
 	}
 	
 }
 
 void PIT0_ISR(void) {
+	GPIO_WriteBit(HW_GPIOA, 16, 1);
+
 	static uint16_t TIME = 0, TIM_CNT = 0, SPEED_CNT = 0;
 	TIME++; TIM_CNT++;
 	if (TIME == 500) {
@@ -75,8 +83,15 @@ void PIT0_ISR(void) {
 
 		case 2: // send data
 		if (printFlag) {
-			printf("%.3f %.0f %4d %4d\r",
-				angleError, angleControlOut, enc_data_l, enc_data_r);
+			// printf("%.3f %.0f %4d %4d\r",
+			// 	angleError, angleControlOut, enc_data_l, enc_data_r);
+			printMPU(AX);
+			printMPU(AY);
+			printMPU(AZ);
+			printMPU(GX);
+			printMPU(GY);
+			printMPU(GZ);
+			printf("\r");
 		}
 		break; //case 2
 
@@ -98,6 +113,8 @@ void PIT0_ISR(void) {
 			-steeringRegulateOut)));
 	setMotor(MOTOR_R, speedOut(MOTOR_R, 
 		(angleControlOut-speedControlOut+steeringRegulateOut)));
+
+	GPIO_WriteBit(HW_GPIOA, 16, 0);
 }
 
 void PIT1_ISR(void) {
@@ -109,11 +126,19 @@ void PIT1_ISR(void) {
 		LED2 = !LED2;
 		// DMA_EnableRequest(HW_DMA_CH0);
 	}
+	GPIO_ToggleBit(HW_GPIOA, 17);
 }
 
 #if ( MAIN_DEBUG == 1 )
 void UART_RX_ISR(uint16_t ch) {
+	switch (ch) {
+		case 'S':
+		printFlag = 1 - printFlag;
+		break;
 
+		default:
+			;
+	}
 }
 #else
 void UART_RX_ISR(uint16_t ch) {
