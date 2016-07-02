@@ -96,6 +96,9 @@ int SCCB_WriteSingleRegister(uint32_t instance, uint8_t chipAddr, uint8_t addr, 
 int I2C_Probe(uint32_t instance, uint8_t chipAddr);
 void I2C_Scan(uint32_t MAP);
 
+/* I2C_DELAY() */
+void I2C_DELAY(void);
+
 #ifdef __cplusplus
 }
 #endif

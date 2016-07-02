@@ -21,11 +21,27 @@
 #define SDA_L()             do {GPIO_WriteBit(i2c.instace, i2c.sda_pin, 0);}while(0)
 #define SCL_H()             do {GPIO_WriteBit(i2c.instace, i2c.scl_pin, 1);}while(0)
 #define SCL_L()             do {GPIO_WriteBit(i2c.instace, i2c.scl_pin, 0);}while(0)
-#define I2C_DELAY()         DelayUs(1)
+// #define I2C_DELAY()         DelayUs(1)
 
 
 
 static i2c_gpio i2c;
+
+void I2C_DELAY(void) {
+    uint32_t startts, endts, ts;
+    startts = DWT->CYCCNT;
+    ts =  SystemCoreClock /(1000*1000*10); 
+    endts = startts + ts;      
+    if(endts > startts)  
+    {
+        while(DWT->CYCCNT < endts);       
+    }
+    else
+    {
+        while(DWT->CYCCNT > endts);
+        while(DWT->CYCCNT < endts);
+    }
+}
 
 /**
  * @brief  I2C快速初始化函数

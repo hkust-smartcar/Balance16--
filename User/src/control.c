@@ -22,7 +22,7 @@ void controlInit(void) {
 	steeringSP = 0;
 	steeringRegulateOut = 0.0f;
 
-	CTRL_CNST[STABLE_ANGLE] = -79.8f;
+	CTRL_CNST[STABLE_ANGLE] = -78.8f;
 	CTRL_CNST[TG] = 0.6f;
 	CTRL_CNST[ANGLE_P] = 500.0f;
 	CTRL_CNST[ANGLE_D] = 26.0f;
