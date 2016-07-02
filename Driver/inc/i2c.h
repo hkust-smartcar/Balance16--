@@ -42,6 +42,7 @@ typedef struct
 #define HW_I2C0         (0x00U)   /* I2C模块0，以下依次类推 */
 #define HW_I2C1         (0x01U)
 #define HW_I2C2         (0x02U)
+#define I2C_NUM         (0x03U)
 
 
 /* I2C QuickInit macro */
@@ -84,17 +85,17 @@ typedef enum
 typedef void (*I2C_CallBackType)(void);
 
 
-uint8_t I2C_QuickInit(uint32_t MAP, uint32_t baudrate);
-int I2C_BurstWrite(uint32_t instance ,uint8_t chipAddr, uint32_t addr, uint32_t addrLen, uint8_t *buf, uint32_t len);
-int I2C_WriteSingleRegister(uint32_t instance, uint8_t chipAddr, uint8_t addr, uint8_t data);
-int I2C_BurstRead(uint32_t instance ,uint8_t chipAddr, uint32_t addr, uint32_t addrLen, uint8_t *buf, uint32_t len);
-int I2C_ReadSingleRegister(uint32_t instance, uint8_t chipAddr, uint8_t addr, uint8_t *data);
-int SCCB_ReadSingleRegister(uint32_t instance, uint8_t chipAddr, uint8_t addr, uint8_t* data);
-int SCCB_WriteSingleRegister(uint32_t instance, uint8_t chipAddr, uint8_t addr, uint8_t data);
+uint8_t I2C_QuickInit(uint8_t id, uint32_t MAP, uint32_t baudrate);
+int I2C_BurstWrite(uint8_t id, uint32_t instance ,uint8_t chipAddr, uint32_t addr, uint32_t addrLen, uint8_t *buf, uint32_t len);
+int I2C_WriteSingleRegister(uint8_t id, uint32_t instance, uint8_t chipAddr, uint8_t addr, uint8_t data);
+int I2C_BurstRead(uint8_t id, uint32_t instance ,uint8_t chipAddr, uint32_t addr, uint32_t addrLen, uint8_t *buf, uint32_t len);
+int I2C_ReadSingleRegister(uint8_t id, uint32_t instance, uint8_t chipAddr, uint8_t addr, uint8_t *data);
+int SCCB_ReadSingleRegister(uint8_t id, uint32_t instance, uint8_t chipAddr, uint8_t addr, uint8_t* data);
+int SCCB_WriteSingleRegister(uint8_t id, uint32_t instance, uint8_t chipAddr, uint8_t addr, uint8_t data);
 
 /* test function */
-int I2C_Probe(uint32_t instance, uint8_t chipAddr);
-void I2C_Scan(uint32_t MAP);
+int I2C_Probe(uint8_t id, uint32_t instance, uint8_t chipAddr);
+void I2C_Scan(uint8_t id, uint32_t MAP);
 
 /* I2C_DELAY() */
 void I2C_DELAY(void);

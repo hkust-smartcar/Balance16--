@@ -31,7 +31,8 @@ void INIT(void) {
 	GPIO_WriteBit(HW_GPIOA, 17, 0);
 	GPIO_QuickInit(HW_GPIOA, 14, kGPIO_Mode_OPP);
 	GPIO_WriteBit(HW_GPIOA, 14, 0);
-
+	GPIO_QuickInit(HW_GPIOA, 12, kGPIO_Mode_OPP);
+	GPIO_WriteBit(HW_GPIOA, 12, 0);
 
 	//PIT
 	PIT_InitTypeDef PIT_InitStruct;
@@ -51,8 +52,8 @@ void INIT(void) {
 	printFlag = 0;
 
 	// I2C, MPU6050
-	uint8_t instance = I2C_QuickInit(MPU6050_I2C_INSTANCE, 100*1000);
-	mpu6050_init((uint32_t) instance);
+	uint8_t instance = I2C_QuickInit(MPU6050_I2C_ID, MPU6050_I2C_INSTANCE, 100*1000);
+	mpu6050_init(MPU6050_I2C_ID, (uint32_t) instance);
 	struct mpu_config mpuConfig;
 	mpuConfig.afs = AFS_4G;
 	mpuConfig.gfs = GFS_500DPS;
@@ -62,7 +63,7 @@ void INIT(void) {
 	mpu6050_config(&mpuConfig);
 
 	// OV7725
-	ov7725_Init(OV7725_I2C_INSTANCE);
+	ov7725_Init(OV7725_I2C_ID, OV7725_I2C_INSTANCE);
 
 	// // DMA for img data
 	// DMA_InitTypeDef DMA_InitStruct;
@@ -166,8 +167,8 @@ void INIT(void) {
 		kFTM_QD_NormalPolarity, kQD_PHABEncoding);
 	
 	// I2C, MPU6050
-	uint8_t instance = I2C_QuickInit(MPU6050_I2C_INSTANCE, 100*1000);
-	mpu6050_init((uint32_t) instance);
+	uint8_t instance = I2C_QuickInit(MPU6050_I2C_ID, MPU6050_I2C_INSTANCE, 100*1000);
+	mpu6050_init(MPU6050_I2C_ID, (uint32_t) instance);
 	struct mpu_config mpuConfig;
 	mpuConfig.afs = AFS_4G;
 	mpuConfig.gfs = GFS_500DPS;
@@ -176,12 +177,14 @@ void INIT(void) {
 	mpuConfig.gbypass_blpf = false;
 	mpu6050_config(&mpuConfig);
 
-	// // OV7725
-	// ov7725_Init(OV7725_I2C_INSTANCE);
+	// OV7725
+	ov7725_Init(OV7725_I2C_ID, OV7725_I2C_INSTANCE);
 
 	// st7735r
 	st7735r_Init(ST7735R_SPI_INSTANCE);
 	st7735r_FillColor(BLACK);
+	st7735r_SetActiveRegion(0, 79, 0, 59);
+
 }
 
 void systemTest(void) {
@@ -276,16 +279,16 @@ void PIT_test(void) {
 }
 #endif // MAIN_DEBUG
 
-uint8_t ov7725_Init(uint32_t I2C_MAP) {
-	// // set DMA channel interrupt to higher priority
+uint8_t ov7725_Init(uint8_t id, uint32_t I2C_MAP) {
+	// set DMA channel interrupt to higher priority
 	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_2);
 	NVIC_SetPriority(DMA1_DMA17_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_2, 2, 1));
 	NVIC_SetPriority(PIT0_IRQn, NVIC_EncodePriority(NVIC_PriorityGroup_2, 1, 1));
 	NVIC_SetPriority(OV7725_VSYNC_IRQ, NVIC_EncodePriority(NVIC_PriorityGroup_2, 2, 2));
 
 	// sccb bus init
-	uint32_t instance = I2C_QuickInit(I2C_MAP, 100*1000);
-	uint8_t err = ov7725_probe(instance);
+	uint32_t instance = I2C_QuickInit(id, I2C_MAP, 100*1000);
+	uint8_t err = ov7725_probe(id, instance);
 	if (err) return err;
 
 	// set image size
@@ -311,6 +314,9 @@ uint8_t ov7725_Init(uint32_t I2C_MAP) {
 	// init pointers to buffers
 	imgRaw = imgBuffer1;
 	imgBuffer = imgBuffer2;
+
+	// init img capture state
+	imgReady = false;
 
 	// DMA for data transmit
 	DMA_InitTypeDef DMA_InitStruct;
@@ -350,6 +356,7 @@ void ov7725_ISR(uint32_t array) {
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, false);
 
 	GPIO_ToggleBit(HW_GPIOD, 8);
+	GPIO_ToggleBit(HW_GPIOA, 16);
 
 }
 
@@ -358,8 +365,9 @@ void ov7725_DMA_Complete_ISR(void) {
 	DMA_DisableRequest(HW_DMA_CH1);
 
 	// st7735r_PlotImg(WHITE,BLACK,imgBuffer,OV7725_H*(OV7725_W/8));
+	imgReady = true;
 	GPIO_ToggleBit(HW_GPIOD, 9);
-	GPIO_ToggleBit(HW_GPIOA, 16);
+	GPIO_ToggleBit(HW_GPIOA, 12);
 
 	// enable port interrupt for next transfer
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, true);

@@ -34,9 +34,9 @@ int main(void) {
 	PIT_CallbackInstall(HW_PIT_CH0, PIT0_ISR);
 	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, true);
 
-	// // enable interrupt & DMA for ov7725
-	// GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_DMA_FallingEdge, true);
-	// GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, true);
+	// enable interrupt & DMA for ov7725
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_DMA_FallingEdge, true);
+	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, true);
 
 
 #else
@@ -49,7 +49,10 @@ int main(void) {
 
 	
 	while (1) {
-
+		if (imgReady) {
+			st7735r_PlotImg(WHITE,BLACK,imgBuffer,OV7725_H*(OV7725_W/8));
+			imgReady = false;
+		}
 	}
 	
 }
@@ -119,7 +122,7 @@ void PIT0_ISR(void) {
 
 void PIT1_ISR(void) {
 	GPIO_ToggleBit(HW_GPIOA, 17);
-	static uint16_t TIME = 0, TIM_CNT = 0;;
+	static uint16_t TIME = 0, TIM_CNT = 0;
 	TIME++; TIM_CNT++;
 	if (TIME == 500) {
 		TIME = 0;
@@ -127,13 +130,13 @@ void PIT1_ISR(void) {
 		LED2 = !LED2;
 		// DMA_EnableRequest(HW_DMA_CH0);
 	}
-	if (TIM_CNT == 3) {
+	if (TIM_CNT == 5) {
 		GPIO_WriteBit(HW_GPIOA, 14, 1);
 		TIM_CNT = 0;
 		updateAngle();
 		GPIO_WriteBit(HW_GPIOA, 14, 0);
 	}
-	else if (TIM_CNT == 2) {
+	else if (TIM_CNT == 1) {
 		if (printFlag) {
 			// printf("%.3f %.0f %4d %4d\r",
 			// 	angleError, angleControlOut, enc_data_l, enc_data_r);

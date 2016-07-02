@@ -18,7 +18,7 @@ typedef enum
 }ov7725_size;
 
 //!< API funtcions
-int ov7725_probe(uint8_t i2c_instance);
+int ov7725_probe(uint8_t ov7725_i2c_id, uint8_t i2c_instance);
 int ov7725_set_image_size(ov7725_size size);
 
 #endif

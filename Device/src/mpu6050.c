@@ -174,13 +174,14 @@ static const uint8_t mpu_addr[] = {0x68, 0x69};
 
 struct mpu_device 
 {
-    uint8_t     addr;
-    uint32_t    instance;
+    uint8_t             addr;
+    uint32_t            instance;
     struct mpu_config   user_config;
-    void        *user_data;
+    void                *user_data;
     float               aRes;           /* scale resolutions per LSB for the sensors */
     float               gRes;
     float               mRes;
+    uint8_t             i2c_id;
 };
 
 static struct mpu_device mpu_dev;
@@ -188,28 +189,29 @@ static struct mpu_device mpu_dev;
 
 static int write_reg(uint8_t addr, uint8_t val)
 {
-    return I2C_WriteSingleRegister(mpu_dev.instance, mpu_dev.addr, addr, val);
+    return I2C_WriteSingleRegister(mpu_dev.i2c_id, mpu_dev.instance, mpu_dev.addr, addr, val);
 }
 
 
 static uint8_t read_reg(uint8_t addr)
 {
     uint8_t val;
-    I2C_ReadSingleRegister(mpu_dev.instance, mpu_dev.addr, addr, &val);
+    I2C_ReadSingleRegister(mpu_dev.i2c_id, mpu_dev.instance, mpu_dev.addr, addr, &val);
     return val;
 }
 
 
-int mpu6050_init(uint32_t instance)
+int mpu6050_init(uint8_t mpu_i2c_id, uint32_t instance)
 {
     int i;
     uint8_t id;
     
     mpu_dev.instance = instance;
+    mpu_dev.i2c_id = mpu_i2c_id;
     
     for(i = 0; i < ARRAY_SIZE(mpu_addr); i++)
     {
-        if(!I2C_ReadSingleRegister(instance, mpu_addr[i], WHO_AM_I, &id))
+        if(!I2C_ReadSingleRegister(mpu_i2c_id, instance, mpu_addr[i], WHO_AM_I, &id))
         {
             if(id == 0x68)
             {
@@ -291,7 +293,7 @@ int mpu6050_read_accel(int16_t* adata)
     uint8_t err;
     uint8_t buf[6];
     
-    err = I2C_BurstRead(mpu_dev.instance, mpu_dev.addr, ACCEL_XOUT_H, 1, buf, 6);
+    err = I2C_BurstRead(mpu_dev.i2c_id, mpu_dev.instance, mpu_dev.addr, ACCEL_XOUT_H, 1, buf, 6);
     
     adata[0] = (int16_t)(((uint16_t)buf[0]<<8)+buf[1]); 	    
     adata[1] = (int16_t)(((uint16_t)buf[2]<<8)+buf[3]); 	    
@@ -307,7 +309,7 @@ int mpu6050_read_gyro(int16_t *gdata)
     uint8_t err;
     uint8_t buf[6];
     
-    err = I2C_BurstRead(mpu_dev.instance, mpu_dev.addr, GYRO_XOUT_H, 1, buf, 6);
+    err = I2C_BurstRead(mpu_dev.i2c_id, mpu_dev.instance, mpu_dev.addr, GYRO_XOUT_H, 1, buf, 6);
     
     gdata[0] = (int16_t)(((uint16_t)buf[0]<<8)+buf[1]); 	    
     gdata[1] = (int16_t)(((uint16_t)buf[2]<<8)+buf[3]); 	    

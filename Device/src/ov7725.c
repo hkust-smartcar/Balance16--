@@ -3,7 +3,7 @@
 #include "i2c.h"
 
 
-#define OV7725_DEBUG		0
+#define OV7725_DEBUG		1
 #if ( OV7725_DEBUG == 1 )
 #include "uart.h"
 #define OV7725_TRACE	printf
@@ -170,6 +170,7 @@ struct ov7725_reg
 struct 
 {
     uint32_t i2c_instance;
+    uint8_t i2c_id;
     uint8_t  addr;
     uint32_t h_size;
     uint32_t v_size;
@@ -229,22 +230,22 @@ static const struct ov7725_reg reg_tbl[] =
     {OV7725_UVADJ1       , 0x02},
 };
 
-int ov7725_probe(uint8_t i2c_instance)
+int ov7725_probe(uint8_t ov7725_i2c_id, uint8_t i2c_instance)
 {
     uint8_t dummy;
 
-    if(!I2C_ReadSingleRegister(i2c_instance, OV7725_ADDR, OV7725_VER, &dummy))
+    if(!I2C_ReadSingleRegister(ov7725_i2c_id, i2c_instance, OV7725_ADDR, OV7725_VER, &dummy))
     {
         /* found device */
         OV7725_TRACE("device found addr:0x%X\r\n", OV7725_ADDR);
         /* reset */
-        I2C_WriteSingleRegister(i2c_instance, OV7725_ADDR, OV7725_COM7, 0x80);
+        I2C_WriteSingleRegister(ov7725_i2c_id, i2c_instance, OV7725_ADDR, OV7725_COM7, 0x80);
 
         /* inject default register value */
         for(uint32_t j = 0; j < ARRAY_SIZE(reg_tbl); j++)
         {
             DelayMs(1);
-            if (I2C_WriteSingleRegister(i2c_instance, OV7725_ADDR,
+            if (I2C_WriteSingleRegister(ov7725_i2c_id, i2c_instance, OV7725_ADDR,
                 reg_tbl[j].addr, reg_tbl[j].val)) {
                 
                 OV7725_TRACE("device[addr:0x%X]regiser[addr:0x%X] write error!\r\n",
@@ -258,6 +259,7 @@ int ov7725_probe(uint8_t i2c_instance)
 
         h_ov7725.addr = OV7725_ADDR;
         h_ov7725.i2c_instance = i2c_instance;
+        h_ov7725.i2c_id = ov7725_i2c_id;
         h_ov7725.h_size = 80;
         h_ov7725.v_size = 60;
         return 0;
@@ -274,26 +276,26 @@ int ov7725_set_image_size(ov7725_size size)
         case H_80_W_60:
             h_ov7725.h_size = 80;
             h_ov7725.v_size = 60;
-            I2C_WriteSingleRegister(h_ov7725.i2c_instance, h_ov7725.addr, OV7725_HOutSize, 0x14);
-            I2C_WriteSingleRegister(h_ov7725.i2c_instance, h_ov7725.addr, OV7725_VOutSize, 0x1E);
+            I2C_WriteSingleRegister(h_ov7725.i2c_id, h_ov7725.i2c_instance, h_ov7725.addr, OV7725_HOutSize, 0x14);
+            I2C_WriteSingleRegister(h_ov7725.i2c_id, h_ov7725.i2c_instance, h_ov7725.addr, OV7725_VOutSize, 0x1E);
             break;
         case H_120_W_160:
             h_ov7725.h_size = 160;
             h_ov7725.v_size = 120;
-            I2C_WriteSingleRegister(h_ov7725.i2c_instance, h_ov7725.addr, OV7725_HOutSize, 0x28);
-            I2C_WriteSingleRegister(h_ov7725.i2c_instance, h_ov7725.addr, OV7725_VOutSize, 0x3C);  
+            I2C_WriteSingleRegister(h_ov7725.i2c_id, h_ov7725.i2c_instance, h_ov7725.addr, OV7725_HOutSize, 0x28);
+            I2C_WriteSingleRegister(h_ov7725.i2c_id, h_ov7725.i2c_instance, h_ov7725.addr, OV7725_VOutSize, 0x3C);  
             break;
         case H_180_W_240:
             h_ov7725.h_size = 240;
             h_ov7725.v_size = 180;
-            I2C_WriteSingleRegister(h_ov7725.i2c_instance, h_ov7725.addr, OV7725_HOutSize, 0x3C);
-            I2C_WriteSingleRegister(h_ov7725.i2c_instance, h_ov7725.addr, OV7725_VOutSize, 0x5A);  
+            I2C_WriteSingleRegister(h_ov7725.i2c_id, h_ov7725.i2c_instance, h_ov7725.addr, OV7725_HOutSize, 0x3C);
+            I2C_WriteSingleRegister(h_ov7725.i2c_id, h_ov7725.i2c_instance, h_ov7725.addr, OV7725_VOutSize, 0x5A);  
             break;
         case H_240_W_320:
             h_ov7725.h_size = 320;
             h_ov7725.v_size = 240;
-            I2C_WriteSingleRegister(h_ov7725.i2c_instance, h_ov7725.addr, OV7725_HOutSize, 0x50);
-            I2C_WriteSingleRegister(h_ov7725.i2c_instance, h_ov7725.addr, OV7725_VOutSize, 0x78);  
+            I2C_WriteSingleRegister(h_ov7725.i2c_id, h_ov7725.i2c_instance, h_ov7725.addr, OV7725_HOutSize, 0x50);
+            I2C_WriteSingleRegister(h_ov7725.i2c_id, h_ov7725.i2c_instance, h_ov7725.addr, OV7725_VOutSize, 0x78);  
             break;
         default:
             OV7725_TRACE("wrong param in func:ov7725_set_image_size\r\n");

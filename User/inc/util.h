@@ -34,7 +34,7 @@ void setMotor(uint32_t id, int32_t pwmDuty);
 void printEncoder(uint32_t id);
 void printMPU(uint32_t id);
 
-uint8_t ov7725_Init(uint32_t I2C_MAP);
+uint8_t ov7725_Init(uint8_t id, uint32_t I2C_MAP);
 // void extractImage(void);
 void ov7725_ISR(uint32_t array);
 void ov7725_DMA_Complete_ISR(void);
