@@ -22,6 +22,8 @@ void controlInit(void) {
 	steeringSP = 0;
 	steeringRegulateOut = 0.0f;
 
+	ultraDis = 0xFFFF;
+
 	CTRL_CNST[STABLE_ANGLE] = -78.8f;
 	CTRL_CNST[TG] = 0.6f;
 	CTRL_CNST[ANGLE_P] = 500.0f;
@@ -123,9 +125,11 @@ void imageProcessing(void) {
 	if (rowCounter) {
 		mean = mean / ((float)rowCounter);
 		st7735r_Print(0, 9, GREEN, BLACK, "%.2f", mean);
-		steeringSP = (mean-39.5f)*200.0f;
+		steeringSP = (mean-30.5f)*200.0f;
+		speedSP = 1000;
 	}
 	else {
-		// steeringSP = 4000;
+		steeringSP = 8000;
+		speedSP = -500;
 	}
 }

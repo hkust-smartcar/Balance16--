@@ -43,27 +43,27 @@ void INIT(void) {
 	PIT_CallbackInstall(HW_PIT_CH1, PIT1_ISR);
 	PIT_ITDMAConfig(HW_PIT_CH1, kPIT_IT_TOF, false);
 
-	// UART
-	UART_QuickInit(UART0_RX_PD06_TX_PD07, 115200);
+	// UART, Bluetooth
+	UART_QuickInit(BT_UART_INSTANCE, 115200);
 	
-	UART_CallbackRxInstall(HW_UART0, UART_RX_ISR);
-	UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, true);
+	UART_CallbackRxInstall(BT_UART, BT_RX_ISR);
+	UART_ITDMAConfig(BT_UART, kUART_IT_Rx, true);
 	
 	printFlag = 0;
 
-	// I2C, MPU6050
-	uint8_t instance = I2C_QuickInit(MPU6050_I2C_ID, MPU6050_I2C_INSTANCE, 100*1000);
-	mpu6050_init(MPU6050_I2C_ID, (uint32_t) instance);
-	struct mpu_config mpuConfig;
-	mpuConfig.afs = AFS_4G;
-	mpuConfig.gfs = GFS_500DPS;
-	mpuConfig.aenable_self_test = false;
-	mpuConfig.genable_self_test = false;
-	mpuConfig.gbypass_blpf = false;
-	mpu6050_config(&mpuConfig);
+	// // I2C, MPU6050
+	// uint8_t instance = I2C_QuickInit(MPU6050_I2C_ID, MPU6050_I2C_INSTANCE, 100*1000);
+	// mpu6050_init(MPU6050_I2C_ID, (uint32_t) instance);
+	// struct mpu_config mpuConfig;
+	// mpuConfig.afs = AFS_4G;
+	// mpuConfig.gfs = GFS_500DPS;
+	// mpuConfig.aenable_self_test = false;
+	// mpuConfig.genable_self_test = false;
+	// mpuConfig.gbypass_blpf = false;
+	// mpu6050_config(&mpuConfig);
 
-	// OV7725
-	ov7725_Init(OV7725_I2C_ID, OV7725_I2C_INSTANCE);
+	// // OV7725
+	// ov7725_Init(OV7725_I2C_ID, OV7725_I2C_INSTANCE);
 
 	// // DMA for img data
 	// DMA_InitTypeDef DMA_InitStruct;
@@ -98,7 +98,12 @@ void INIT(void) {
 	st7735r_Init(ST7735R_SPI_INSTANCE);
 	st7735r_FillColor(BLACK);
 
-	st7735r_SetActiveRegion(0, 79, 0, 59);
+	// st7735r_SetActiveRegion(0, 79, 0, 59);
+
+	// US-100
+	UART_QuickInit(US100_UART_INSTANCE, 9600);
+	UART_CallbackRxInstall(US100_UART, US100_RX_ISR);
+	UART_ITDMAConfig(US100_UART, kUART_IT_Rx, true);
 }
 #else
 void INIT(void) {
@@ -139,11 +144,11 @@ void INIT(void) {
 	// PIT_CallbackInstall(HW_PIT_CH0, PIT0_ISR);
 	PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF, false);
 	
-	// UART
-	UART_QuickInit(UART0_RX_PD06_TX_PD07, 115200);
+	// UART, Bluetooth
+	UART_QuickInit(BT_UART_INSTANCE, 115200);
 	
-	UART_CallbackRxInstall(HW_UART0, UART_RX_ISR);
-	UART_ITDMAConfig(HW_UART0, kUART_IT_Rx, true);
+	UART_CallbackRxInstall(BT_UART, BT_RX_ISR);
+	UART_ITDMAConfig(BT_UART, kUART_IT_Rx, true);
 	
 	printFlag = 0;
 	
@@ -168,7 +173,8 @@ void INIT(void) {
 	
 	// I2C, MPU6050
 	uint8_t instance = I2C_QuickInit(MPU6050_I2C_ID, MPU6050_I2C_INSTANCE, 100*1000);
-	mpu6050_init(MPU6050_I2C_ID, (uint32_t) instance);
+	if (mpu6050_init(MPU6050_I2C_ID, (uint32_t) instance))
+		NVIC_SystemReset();
 	struct mpu_config mpuConfig;
 	mpuConfig.afs = AFS_4G;
 	mpuConfig.gfs = GFS_500DPS;
@@ -290,6 +296,7 @@ uint8_t ov7725_Init(uint8_t id, uint32_t I2C_MAP) {
 	DelayMs(10);
 	uint32_t instance = I2C_QuickInit(id, I2C_MAP, 100*1000);
 	uint8_t err = ov7725_probe(id, instance);
+	if (err) NVIC_SystemReset();
 	
 	// set image size
 	ov7725_set_image_size(H_80_W_60);
@@ -347,8 +354,7 @@ uint8_t ov7725_Init(uint8_t id, uint32_t I2C_MAP) {
 	DMA_CallbackInstall(HW_DMA_CH1, ov7725_DMA_Complete_ISR);
 	DMA_ITConfig(HW_DMA_CH1, kDMA_IT_Major, true);
 
-	if (err) return err;
-	else return 0;
+	return 0;
 }
 
 void ov7725_ISR(uint32_t array) {

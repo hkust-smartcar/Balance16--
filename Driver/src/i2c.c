@@ -30,7 +30,7 @@ static i2c_gpio i2c[I2C_NUM];
 void I2C_DELAY(void) {
     uint32_t startts, endts, ts;
     startts = DWT->CYCCNT;
-    ts =  SystemCoreClock /(1000*1000*8); 
+    ts =  SystemCoreClock /(1000*1000*4); 
     endts = startts + ts;      
     if(endts > startts)  
     {

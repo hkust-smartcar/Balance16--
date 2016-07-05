@@ -41,14 +41,15 @@ int main(void) {
 
 #else
 	PIT_ITDMAConfig(HW_PIT_CH1, kPIT_IT_TOF, true);
-	// enable interrupt & DMA for ov7725
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_DMA_FallingEdge, true);
-	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, true);
+	// // enable interrupt & DMA for ov7725
+	// GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_PCLK_PIN, kGPIO_DMA_FallingEdge, true);
+	// GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, true);
 
 #endif // MAIN_DEBUG
 
 	
 	while (1) {
+#if ( MAIN_DEBUG == 0 )
 		if (imgReady) {
 			imgLocked = true;
 			st7735r_PlotImg(WHITE,BLACK,imgRaw,OV7725_H*(OV7725_W/8));
@@ -56,6 +57,7 @@ int main(void) {
 			imgReady = false;
 			imgLocked = false;
 		}
+#endif // MAIN_DEBUG
 	}
 	
 }
@@ -89,8 +91,8 @@ void PIT0_ISR(void) {
 
 		case 2: // send data
 		if (printFlag) {
-			printf("%.3f %.0f %4d %4d\r",
-				angleError, angleControlOut, enc_data_l, enc_data_r);
+			printf("%.3f %.0f %4d %.0f\r",
+				angleError, angleControlOut, speedAverage, speedControlOut);
 			// printMPU(AX);
 			// printMPU(AY);
 			// printMPU(AZ);
@@ -133,33 +135,16 @@ void PIT1_ISR(void) {
 		LED2 = !LED2;
 		// DMA_EnableRequest(HW_DMA_CH0);
 	}
-	if (TIM_CNT == 5) {
-		GPIO_WriteBit(HW_GPIOA, 14, 1);
+	if (TIM_CNT == 500) {
 		TIM_CNT = 0;
-		updateAngle();
-		GPIO_WriteBit(HW_GPIOA, 14, 0);
+		UART_WriteByte(HW_UART4, (uint16_t)0x55);
+		ultraState = 0;		
 	}
-	else if (TIM_CNT == 1) {
-		if (printFlag) {
-			// printf("%.3f %.0f %4d %4d\r",
-			// 	angleError, angleControlOut, enc_data_l, enc_data_r);
-			// printMPU(AX);
-			// printMPU(AY);
-			// printMPU(AZ);
-			// printMPU(GX);
-			printMPU(GY);
-			// printMPU(GZ);
-			printf("\r");
-		}
-	}
-	// for (uint8_t i = 0; i < 100; i++) {
-	// 	DelayUs(1);
-	// 	GPIO_ToggleBit(HW_GPIOA, 17);
-	// }
+	
 }
 
 #if ( MAIN_DEBUG == 1 )
-void UART_RX_ISR(uint16_t ch) {
+void BT_RX_ISR(uint16_t ch) {
 	switch (ch) {
 		case 'S':
 		printFlag = 1 - printFlag;
@@ -169,8 +154,20 @@ void UART_RX_ISR(uint16_t ch) {
 			;
 	}
 }
+
+void US100_RX_ISR(uint16_t ch) {
+	if (ultraState == 0) {
+		ultraDis = ch<<8;
+		ultraState = 1;
+	}
+	else {
+		ultraDis |= (ch&0xFF);
+		st7735r_Print(0, 8, GREEN, BLACK, "%d", ultraDis);
+		ultraState = 0;
+	}
+}
 #else
-void UART_RX_ISR(uint16_t ch) {
+void BT_RX_ISR(uint16_t ch) {
 	switch (ch) {
 		case 0x1E: // up
 		if (speedSP < 10000) {

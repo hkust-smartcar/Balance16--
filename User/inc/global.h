@@ -58,4 +58,8 @@ EXT bool imgLocked;
 // flash
 EXT uint8_t buf[SECTOR_SIZE];
 
+// US-100
+EXT uint16_t ultraDis;
+EXT uint8_t ultraState;
+
 #endif // _USER_GLOBAL_H_

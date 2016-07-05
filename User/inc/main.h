@@ -6,6 +6,7 @@
 
 void PIT0_ISR(void);
 void PIT1_ISR(void);
-void UART_RX_ISR(uint16_t);
+void BT_RX_ISR(uint16_t);
+void US100_RX_ISR(uint16_t);
 
 #endif // _USER_MAIN_H_
