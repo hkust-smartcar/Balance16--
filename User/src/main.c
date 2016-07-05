@@ -50,8 +50,11 @@ int main(void) {
 	
 	while (1) {
 		if (imgReady) {
-			st7735r_PlotImg(WHITE,BLACK,imgBuffer,OV7725_H*(OV7725_W/8));
+			imgLocked = true;
+			st7735r_PlotImg(WHITE,BLACK,imgRaw,OV7725_H*(OV7725_W/8));
+			imageProcessing();
 			imgReady = false;
+			imgLocked = false;
 		}
 	}
 	

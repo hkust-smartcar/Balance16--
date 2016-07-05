@@ -24,4 +24,6 @@ void speedControlAverage(uint16_t count);
 void steeringRegulate(void);
 int32_t speedOut(uint32_t id, float speedIn);
 
+void imageProcessing(void);
+
 #endif // _USER_CONTROL_H_

@@ -98,3 +98,34 @@ int32_t speedOut(uint32_t id, float speedIn) {
 	}
 	return (int32_t)output;
 }
+
+void imageProcessing(void) {
+	float mean = 0.0f, rowMean = 0.0f;
+	uint32_t x = 0, rowCounter = 0, pixelCounter = 0;
+	uint32_t i, j, k;
+	for (j = 0; j < 600; j += 10) {
+		pixelCounter = 0;
+		rowMean = 0.0f;
+		for (i = 0; i < 10; i++) {
+			x = imgRaw[i+j];
+			for (k = 0; k < 8; k++) {
+				if (!((x>>(7-k))&1u)) {
+					rowMean += (float)((i<<3) + k);
+					pixelCounter++;
+				}
+			}
+		}
+		if (pixelCounter) {
+			mean += rowMean/(float)pixelCounter;
+			rowCounter++;
+		}
+	}
+	if (rowCounter) {
+		mean = mean / ((float)rowCounter);
+		st7735r_Print(0, 9, GREEN, BLACK, "%.2f", mean);
+		steeringSP = (mean-39.5f)*200.0f;
+	}
+	else {
+		// steeringSP = 4000;
+	}
+}

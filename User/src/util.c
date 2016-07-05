@@ -287,10 +287,10 @@ uint8_t ov7725_Init(uint8_t id, uint32_t I2C_MAP) {
 	NVIC_SetPriority(OV7725_VSYNC_IRQ, NVIC_EncodePriority(NVIC_PriorityGroup_2, 2, 2));
 
 	// sccb bus init
+	DelayMs(10);
 	uint32_t instance = I2C_QuickInit(id, I2C_MAP, 100*1000);
 	uint8_t err = ov7725_probe(id, instance);
-	if (err) return err;
-
+	
 	// set image size
 	ov7725_set_image_size(H_80_W_60);
 
@@ -314,6 +314,7 @@ uint8_t ov7725_Init(uint8_t id, uint32_t I2C_MAP) {
 	// init pointers to buffers
 	imgRaw = imgBuffer1;
 	imgBuffer = imgBuffer2;
+	imgLocked = false;
 
 	// init img capture state
 	imgReady = false;
@@ -346,7 +347,8 @@ uint8_t ov7725_Init(uint8_t id, uint32_t I2C_MAP) {
 	DMA_CallbackInstall(HW_DMA_CH1, ov7725_DMA_Complete_ISR);
 	DMA_ITConfig(HW_DMA_CH1, kDMA_IT_Major, true);
 
-	return 0;
+	if (err) return err;
+	else return 0;
 }
 
 void ov7725_ISR(uint32_t array) {
@@ -368,6 +370,13 @@ void ov7725_DMA_Complete_ISR(void) {
 	imgReady = true;
 	GPIO_ToggleBit(HW_GPIOD, 9);
 	GPIO_ToggleBit(HW_GPIOA, 12);
+
+	if (!imgLocked) {
+		uint8_t* tmp = imgRaw;
+		imgRaw = imgBuffer;
+		imgBuffer = tmp;
+		DMA_SetDestAddress(HW_DMA_CH1, (uint32_t)imgBuffer);
+	}
 
 	// enable port interrupt for next transfer
 	GPIO_ITDMAConfig(OV7725_CTRL_PORT, OV7725_VSYNC_PIN, kGPIO_IT_RisingEdge, true);
